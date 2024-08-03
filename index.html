@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A/C Mobile V3</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        iframe {
+            display: block;
+            background: #000;
+            border: none;         
+            height: 100vh;
+            width: 100vw;
+            scrolling: no;
+        }
+        .container {
+            width: auto;
+            margin: auto;
+            padding: 20;
+            background-color: #fff;
+            box-shadow: 0 0 0px rgba(0, 0, 0, 0);
+            overflow: visible;
+            margin-top: 0.2in;
+            margin-bottom: 0.7in;
+            margin-left: 0.5in;
+            margin-right: 0.5in;
+        }
+        h1 {
+            text-align: left;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        .description {
+            font-size: 1em;
+            text-align: center;
+            color: #555;
+            margin-bottom: 0px;
+            max-width: 90%;
+            word-wrap: break-word;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        .form-group input,
+        .form-group select {
+            padding: 8px;
+            font-size: 1em;
+            box-sizing: border-box;
+            width: 90%;
+        }
+        .form-group-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .form-group-row .form-group {
+            flex: 1;
+            margin-right: 0px;
+        }
+        .form-group-row .form-group:last-child {
+            margin-right: 0;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .result-item {
+            margin-bottom: 10px;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.8em;
+            color: #555;
+        }
+        .possible-cause {
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .gauge-readings {
+            display: flex;
+            flex-direction: column;
+        }
+        .ach-warning {
+            color: blue;
+        }
+        .alternate-row {
+            background-color: #f9f9f9;
+        }
+        .low-side-label {
+            color: blue;
+        }
+        .low-side-input {
+            border: 1px solid blue;
+            color: blue;
+        }
+        .high-side-label {
+            color: red;
+        }
+        .high-side-input {
+            border: 1px solid red;
+            color: red;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                font-size: 80%;
+            }
+            .container {
+                width: 100%;
+                box-shadow: none;
+                padding: 10px;
+                page-break-after: avoid;
+                overflow: visible;
+            }
+            .page {
+                page-break-after: avoid;
+            }
+            .customer-info {
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>A/C Performance Report</h1>
+        <div class="description">
+            The A/C Performance Report is designed to establish a baseline for accurately evaluating a vehicle's air conditioning system. By providing detailed analysis and clear data, it gives you a direction for making informed decisions when recommending repairs or maintenance, as well as providing a post-analysis comparison. This ensures that any work performed is necessary and effective, ultimately improving customer satisfaction and trust in our service.
+            <h3>Idealy, testing is conducted with the system set to MAX Cooling, the lowest temperature setting, condensrer fan running, the blower on high, and the engine at 1,500 RPMs.</h3>
+        </div>
+        <div class="form-group">
+            <label for="vin">VIN:</label>
+            <input type="text" id="vin" maxlength="17" oninput="fetchVehicleData(); updatePerformanceSummary(); getLocation();">
+        </div>
+        <div class="form-group">
+            <label for="vehicleYear">Year:</label>
+            <input type="number" id="vehicleYear" oninput="updatePerformanceSummary();">
+        </div>
+        <div class="form-group">
+            <label for="vehicleMake">Make:</label>
+            <input type="text" id="vehicleMake" oninput="updatePerformanceSummary();">
+        </div>
+        <div class="form-group">
+            <label for="retrievedVehicleType">Type:</label>
+            <input type="text" id="retrievedVehicleType" readonly>
+        </div>
+        <div class="form-group" style="display:none;">
+            <label for="vehicleModel">Model:</label>
+            <input type="text" id="vehicleModel" readonly>
+        </div>
+        <div class="form-group">
+            <label for="zipCode"><strong>Weather Conditions (enter ZIP)</strong></label>
+            <input type="text" id="zipCode" oninput="fetchWeatherData(); updatePerformanceSummary();">
+        </div>
+        <div class="form-group">
+            <label for="ambientTemp">Outside Air Temp (°F):</label>
+            <input type="number" id="ambientTemp" oninput="calculateTempDrop(); updatePerformanceSummary();">
+        </div>
+        <div class="form-group">
+            <label for="relativeHumidity">Relative Humidity (%):</label>
+            <input type="number" id="relativeHumidity" oninput="calculateTempDrop(); updatePerformanceSummary();">
+        </div>
+        <div class="form-group">
+            <label for="feelsLikeTemp">Feels Like Temp (°F):</label>
+            <input type="number" id="feelsLikeTemp" oninput="calculateTempDrop(); calculateCoolingTime(); updatePerformanceSummary();">
+        </div>
+        <div class="form-group">
+            <strong>Inside Temp & Air-speed Readings</strong> 
+        </div>
+        <div class="form-group">
+            <strong>Cabin's Size</strong> 
+        </div>
+        <div class="form-group">
+            <label for="vehicleType">Vehicle Type:</label>
+            <select id="vehicleType" onchange="updateDefaults(); updatePerformanceSummary();">
+                <option value="">Select Type</option>
+                <option value="Compact">Compact</option>
+                <option value="Mid-Size">Mid-Size</option>
+                <option value="SUV">SUV</option>
+                <option value="Truck">Truck</option>
+                <option value="Van">Van</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="volume">Cabin's Air Volume (cf):</label>
+            <input type="number" id="volume" readonly>
+        </div>
+        <div class="form-group">
+            <label for="lowCFM">Lower-end Air Changes/hr:</label>
+            <input type="number" id="lowCFM" readonly>
+        </div>
+        <div class="form-group">
+            <label for="highCFM">Higher-end Cabin Air Changes/hr:</label>
+            <input type="number" id="highCFM" readonly>
+        </div>
+        <div class="form-group-row" style="font-size: 14px;">
+            <div class="form-group">
+                <label for="leftReading" class="below">Left Vent Air-speed (ft/m):</label>
+                <input type="number" id="leftReading" class="air-speed" oninput="calculateACHAndRating(); calculateCoolingTime(); updatePerformanceSummary();" style="width: 120px;">
+            </div>
+            <div class="form-group">
+                <label for="rightReading" class="below">Right Vent Air-speed (ft/m):</label>
+                <input type="number" id="rightReading" class="air-speed" oninput="calculateACHAndRating(); calculateCoolingTime(); updatePerformanceSummary();" style="width: 120px;">
+            </div>
+            <div class="form-group">
+                <label for="centerReading" class="below">Center Vent Air-speed (ft/m):</label>
+                <input type="number" id="centerReading" class="air-speed" oninput="calculateACHAndRating(); calculateCoolingTime(); updatePerformanceSummary();" style="width: 120px;">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="centerVentTemp">Center Vent Air Temp (°F):</label>
+            <input type="number" id="centerVentTemp" oninput="calculateTempDrop(); calculateCoolingTime(); updatePerformanceSummary();">
+        </div>
+
+        <div class="gauge-readings">
+            <div class="form-group">
+                <strong>Gauge Readings</strong> 
+            </div>
+            <div class="form-group">
+                <label for="lowSidePsi" class="low-side-label">Low-side (psi):</label>
+                <input type="number" id="lowSidePsi" class="low-side-input" oninput="calculateSaturatedTemp(); updatePerformanceSummary();">
+                <label for="lowSideTemp"><strong>  Saturation Temp:</label>
+                <span id="lowSideTemp"></strong><label> °F</label></span>
+            </div>
+            <div class="form-group">
+                <label for="highSidePsi" class="high-side-label">High-side (psi):</label>
+                <input type="number" id="highSidePsi" class="high-side-input" oninput="calculateSaturatedTemp(); updatePerformanceSummary();">
+                <label for="highSideTemp"><strong>  Saturation Temp:</label>
+                <span id="highSideTemp"></strong><label> °F</label></span>
+            </div>
+            <div class="form-group">
+                <strong>Evaporator Readings</strong> 
+            </div>
+            <div class="form-group">
+                <label for="suctionLineTemp">Evap Suction Line Temp (°F):</label>
+                <input type="number" id="suctionLineTemp" oninput="calculateTempDifference(); updatePerformanceSummary();">
+            </div>
+            <div class="result-item alternate-row">
+                <strong>Evap Superheat (°F):</strong> <span id="tempDifference"></span> <span id="chargeCondition"></span>
+            </div>
+            <div class="form-group">
+                <strong>Condenser Readings</strong> 
+            </div>
+            <div class="form-group">
+                <label for="condenserOutletTemp">Condenser Outlet Temp (°F):</label>
+                <input type="number" id="condenserOutletTemp" oninput="calculateSubcooling(); updatePerformanceSummary();">
+            </div>
+            <div class="result-item alternate-row">
+                <strong>Condenser Subcooling (°F):</strong> <span id="subcooling"></span> <span id="subcoolingCondition"></span>
+            </div>
+            <div class="results">
+                <div class="possible-cause" id="possibleCause"></div>
+                <div class="result-item alternate-row">
+                    <strong>Total Vent Air-Flow (cfm):</strong> <span id="totalVentFlow"></span>
+                </div>
+                <div class="result-item">
+                    <strong>Average Flow/Vent (cfm):</strong> <span id="avgVentFlow"></span>
+                </div>
+                <div class="result-item alternate-row">
+                    <strong>Cabin Air Changes/hr:</strong> <span id="ach"></span>
+                </div>
+                <div class="result-item">
+                    <strong>Temperature Drop at vent is:</strong> <span id="tempDrop"></span>°<span id="tempDropRating"></span>
+                </div>
+                <div class="result-item alternate-row">
+                    <strong>Estimated Cooling Time:</strong> <span id="coolingTime"></span>
+                </div>
+                <div class="result-item">
+                    <strong>AC Rating (%):</strong> <span id="acRating"></span>
+                </div>
+            </div>
+        </div>
+        <div class="customer-info" id="customerInfo">
+            <div class="form-group">
+                <h2>Customer Information</h2>
+            </div>
+            <div class="form-group">
+                <label for="firstName">First Name:</label>
+                <input type="text" id="firstName" oninput="updatePerformanceSummary()">
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name:</label>
+                <input type="text" id="lastName" oninput="updatePerformanceSummary()">
+            </div>
+        </div>
+        <div id="performanceSummary">
+            <!-- Performance Summary will be inserted here -->
+        </div>
+        <button onclick="generateSummaryFile()">Send Results</button>
+        <div class="footer">
+            <p>&copy; 2024 sarantech, LLC - All rights reserved.</p>
+            <p>Author: Peter Sarantidis - ASE Certified Master Tech, Advanced Levels L1,L3,L4</p>
+        </div>
+    </div>
+    <script>
+        async function fetchWeatherData() {
+            const zipCode = document.getElementById("zipCode").value;
+            if (!zipCode) return;
+
+            const apiKey = 'c1f623f582996a080fa582661efc36b5'; // Replace with your OpenWeatherMap API key
+            const url = `https://api.openweathermap.org/data/2.5/weather?zip=${zipCode},us&units=imperial&appid=${apiKey}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.cod === 200) {
+                    const humidity = data.main.humidity;
+                    const temp = Math.round(data.main.temp); // Use Math.round to remove the floating decimal
+                    const feelsLikeTemp = Math.round(data.main.feels_like);
+                    const weatherCondition = data.weather[0].main; // Get the main weather condition
+                    
+                    document.getElementById('relativeHumidity').value = humidity;
+                    document.getElementById('ambientTemp').value = temp;
+                    document.getElementById('feelsLikeTemp').value = feelsLikeTemp;
+                    calculateTempDrop(); // Call your function to update the temperature drop
+                    
+                    let weatherConditionDiv = document.getElementById('weatherCondition');
+                    if (!weatherConditionDiv) {
+                        weatherConditionDiv = document.createElement('div');
+                        weatherConditionDiv.id = 'weatherCondition';
+                        weatherConditionDiv.style.fontSize = "1.0em";
+                        weatherConditionDiv.style.color = "#555";
+                        const weatherConditionsGroup = document.querySelector('.form-group strong').parentElement;
+                        weatherConditionsGroup.appendChild(weatherConditionDiv);
+                    }
+                    weatherConditionDiv.innerText = `${weatherCondition} at time of testing.`;
+                } else {
+                    console.error('Error fetching weather data:', data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function fetchVehicleData() {
+            const vin = document.getElementById("vin").value;
+            if (!vin || vin.length !== 17) return;
+
+            const url = `https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${vin}?format=json`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                const results = data.Results;
+
+                const vehicleMake = results.find(item => item.Variable === "Make")?.Value || "";
+                const vehicleModel = results.find(item => item.Variable === "Model")?.Value || "";
+                const vehicleYear = results.find(item => item.Variable === "Model Year")?.Value || "";
+                const vehicleType = results.find(item => item.Variable === "Vehicle Type")?.Value || "";
+
+                document.getElementById("vehicleMake").value = vehicleMake;
+                document.getElementById("vehicleModel").value = vehicleModel;
+                document.getElementById("vehicleYear").value = vehicleYear;
+                document.getElementById("retrievedVehicleType").value = vehicleType;
+
+                // Map vehicle type to dropdown values and estimate cabin volume
+                let estimatedVolume = "";
+                let mappedVehicleType = "";
+
+                if (vehicleType.toLowerCase().includes("compact")) {
+                    mappedVehicleType = "Compact";
+                    estimatedVolume = 90; // Example volume in cubic feet
+                } else if (vehicleType.toLowerCase().includes("mid-size") || vehicleType.toLowerCase().includes("sedan") || vehicleType.toLowerCase().includes("passenger car")) {
+                    mappedVehicleType = "Mid-Size";
+                    estimatedVolume = 130; // Example volume in cubic feet
+                } else if (vehicleType.toLowerCase().includes("suv")) {
+                    mappedVehicleType = "SUV";
+                    estimatedVolume = 160; // Example volume in cubic feet
+                } else if (vehicleType.toLowerCase().includes("truck") || vehicleType.toLowerCase().includes("pickup")) {
+                    mappedVehicleType = "Truck";
+                    estimatedVolume = 150; // Example volume in cubic feet
+                } else if (vehicleType.toLowerCase().includes("van") || vehicleType.toLowerCase().includes("minivan")|| vehicleType.toLowerCase().includes("mpv")) {
+                    mappedVehicleType = "Van";
+                    estimatedVolume = 170; // Example volume in cubic feet
+                } else if (vehicleType.toLowerCase().includes("coupe") || vehicleType.toLowerCase().includes("convertible")) {
+                    mappedVehicleType = "Compact";
+                    estimatedVolume = 80; // Example volume in cubic feet
+                } else if (vehicleType.toLowerCase().includes("hatchback") || vehicleType.toLowerCase().includes("wagon")) {
+                    mappedVehicleType = "Mid-Size";
+                    estimatedVolume = 120; // Example volume in cubic feet
+                } else {
+                    mappedVehicleType = "";
+                }
+
+                // Set the vehicle type in the dropdown
+                const vehicleTypeSelect = document.getElementById("vehicleType");
+                for (let i = 0; i < vehicleTypeSelect.options.length; i++) {
+                    if (vehicleTypeSelect.options[i].value === mappedVehicleType) {
+                        vehicleTypeSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+
+                // Set the volume field
+                document.getElementById("volume").value = estimatedVolume;
+
+                // Call the updateDefaults function to set CFM values
+                updateDefaults();
+                updatePerformanceSummary();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function updateDefaults() {
+            const vehicleType = document.getElementById("vehicleType").value;
+            const lowCFM = document.getElementById("lowCFM");
+            const highCFM = document.getElementById("highCFM");
+            const volume = document.getElementById("volume");
+
+            const defaultData = {
+                "Compact": [90, 30, 45],
+                "Mid-Size": [130, 43.3, 65],
+                "SUV": [160, 53.3, 80],
+                "Truck": [150, 50, 75],
+                "Van": [170, 56.7, 85]
+            };
+
+            if (vehicleType in defaultData) {
+                const defaults = defaultData[vehicleType];
+                volume.value = defaults[0];
+                lowCFM.value = defaults[1];
+                highCFM.value = defaults[2];
+            } else {
+                volume.value = "";
+                lowCFM.value = "";
+                highCFM.value = "";
+            }
+
+            calculateACHAndRating();
+        }
+
+        function calculateACHAndRating() {
+            const leftReading = parseFloat(document.getElementById("leftReading").value);
+            const centerReading = parseFloat(document.getElementById("centerReading").value);
+            const rightReading = parseFloat(document.getElementById("rightReading").value);
+            const volume = parseFloat(document.getElementById("volume").value) || 0;
+            const lowCFM = parseFloat(document.getElementById("lowCFM").value) || 0;
+            const highCFM = parseFloat(document.getElementById("highCFM").value) || 0;
+            const ventArea = 0.02; // Assuming vent area in square feet
+
+            if (isNaN(leftReading) || isNaN(centerReading) || isNaN(rightReading)) {
+                document.getElementById("totalVentFlow").innerText = "";
+                document.getElementById("avgVentFlow").innerText = "";
+                document.getElementById("ach").innerText = "";
+                return;
+            }
+
+            const leftVentFlow = leftReading * ventArea;
+            const centerVentFlow = centerReading * ventArea * 2; // Center vent counts as two vents
+            const rightVentFlow = rightReading * ventArea;
+
+            const totalVentFlow = leftVentFlow + centerVentFlow + rightVentFlow;
+            document.getElementById("totalVentFlow").innerText = totalVentFlow.toFixed(2);
+
+            const ach = volume ? (totalVentFlow * 60) / volume : 0;
+
+            let rating = "";
+            let achWarning = "";
+
+            if (ach >= (highCFM * 0.95)) {
+                rating = "Excellent";
+                achWarning = "Recommend Cabin's Air Filtration Inspection: A new Cabin Air filter will reduce stress on your AC system and help maintain its performance.";
+            } else if (ach >= (lowCFM * 0.94) && ach < (highCFM * 0.95)) {
+                rating = "Average";
+                achWarning = "We recommend checking the remaining service expectancy of the cabin's air filter.";
+            } else if (ach >= (lowCFM * 0.93) && ach < (lowCFM * 0.94)) {
+                rating = "Below Average";
+                achWarning = "Any time the expected Cabin's Air Changes per Hour are below Average, we recommend that one of our Certified technicians inspect for an obstructed cabin air filter (if the vehicle has one), as well as testing the AC management system for reported faults.";
+            } else {
+                rating = "Poor";
+                achWarning = "Any time the Cabin's Air Changes per Hour (ACH) falls to a poor rating, we recommend a complete AC system analysis by one of our certified trained professionals.";
+            }
+
+            document.getElementById("avgVentFlow").innerText = (totalVentFlow / 4).toFixed(2); // Average flow per vent
+            document.getElementById("ach").innerText = ach.toFixed(2) + ` (${rating})`;
+
+            updatePossibleCauses(achWarning);
+            calculateCoolingTime();
+            updatePerformanceSummary();
+        }
+
+        function calculateTempDrop() {
+            const ambientTemp = parseFloat(document.getElementById("ambientTemp").value) || 0;
+            const centerVentTemp = parseFloat(document.getElementById("centerVentTemp").value) || 0;
+            const relativeHumidity = parseFloat(document.getElementById("relativeHumidity").value) || 0;
+            const feelsLikeTemp = parseFloat(document.getElementById("feelsLikeTemp").value) || 0;
+            const tempDrop = ambientTemp - centerVentTemp;
+            document.getElementById("tempDrop").innerText = tempDrop.toFixed(2);
+
+            let expectedTempDropLow, expectedTempDropHigh;
+
+            if (ambientTemp > 90) {
+                if (relativeHumidity > 50) {
+                    expectedTempDropLow = 30;
+                    expectedTempDropHigh = 40;
+                } else if (relativeHumidity > 30) {
+                    expectedTempDropLow = 40;
+                    expectedTempDropHigh = 45;
+                } else {
+                    expectedTempDropLow = 35;
+                    expectedTempDropHigh = 45;
+                }
+            } else if (ambientTemp > 60) {
+                if (relativeHumidity > 50) {
+                    expectedTempDropLow = 30;
+                    expectedTempDropHigh = 40;
+                } else if (relativeHumidity > 30) {
+                    expectedTempDropLow = 30;
+                    expectedTempDropHigh = 40;
+                } else {
+                    expectedTempDropLow = 30;
+                    expectedTempDropHigh = 40;
+                }
+            } else {
+                expectedTempDropLow = 0;
+                expectedTempDropHigh = 0;
+            }
+
+            let tempDropRating = "Below Target";
+            let possibleCause = "";
+            if (tempDrop >= expectedTempDropLow && tempDrop <= expectedTempDropHigh) {
+                tempDropRating = "Good";
+                if (tempDrop >= (expectedTempDropHigh - (expectedTempDropHigh - expectedTempDropLow) * 0.25)) {
+                    tempDropRating = "Excellent";
+                }
+            } else if (tempDrop > expectedTempDropHigh) {
+                tempDropRating = "Above Target";
+                possibleCause = "Notes for Possible Issues with Low refrigerant level: restricted airflow, or malfunctioning components.";
+            } else {
+                possibleCause = "Notes for Possible Issues with Overcharged system: restricted airflow, or malfunctioning components.";
+            }
+
+            document.getElementById("tempDropRating").innerText = ` (${tempDropRating})`;
+
+            // Update possible causes
+            updatePossibleCauses(possibleCause);
+
+            updatePerformanceSummary();
+        }
+
+        function getSaturatedTemp(psi) {
+            const ptTableR134a = [
+                { temp: -49, psi: -18.4 },{ temp: -48, psi: -18 },{ temp: -47, psi: -17.6 },
+                { temp: -46, psi: -17.3 },{ temp: -45, psi: -16.9 },{ temp: -44, psi: -16.5 },
+                { temp: -43, psi: -16.1 },{ temp: -42, psi: -15.7 },{ temp: -41, psi: -15.2 },
+                { temp: -40, psi: -14.8 },{ temp: -39, psi: -14.4 },{ temp: -38, psi: -13.9 },
+                { temp: -37, psi: -13.4 },{ temp: -36, psi: -13 },{ temp: -35, psi: -12.5 },
+                { temp: -34, psi: -12 },{ temp: -33, psi: -11.4 },{ temp: -32, psi: -10.9 },
+                { temp: -31, psi: -10.4 },{ temp: -30, psi: -9.8 },{ temp: -29, psi: -9.3 },
+                { temp: -28, psi: -8.7 },{ temp: -27, psi: -8.1 },{ temp: -26, psi: -7.5 },
+                { temp: -25, psi: -6.9 },{ temp: -24, psi: -6.3 },{ temp: -23, psi: -5.7 },
+                { temp: -22, psi: -5 },{ temp: -21, psi: -4.3 },{ temp: -20, psi: -3.7 },
+                { temp: -19, psi: -3 },{ temp: -18, psi: -2.3 },{ temp: -17, psi: -1.5 },
+                { temp: -16, psi: 0.8 },{ temp: -15, psi: 0.1 },{ temp: -14, psi: 0.4 },
+                { temp: -13, psi: 0.7 },{ temp: -12, psi: 1.1 },{ temp: -11, psi: 1.5 },
+                { temp: -10, psi: 1.9 },{ temp: -9, psi: 2.4 },{ temp: -8, psi: 2.8 },{ temp: -7, psi: 3.2 },
+                { temp: -6, psi: 3.6 },{ temp: -5, psi: 4.1 },{ temp: -4, psi: 4.6 },{ temp: -3, psi: 5 },
+                { temp: -2, psi: 5.5 },{ temp: -1, psi: 6 },{ temp: 0, psi: 6.5 },{ temp: 1, psi: 7 },
+                { temp: 2, psi: 7.5 },{ temp: 3, psi: 8 },{ temp: 4, psi: 8.5 },{ temp: 5, psi: 9.1 },
+                { temp: 6, psi: 9.6 },{ temp: 7, psi: 10.2 },{ temp: 8, psi: 10.8 },{ temp: 9, psi: 11.3 },
+                { temp: 10, psi: 11.9 },{ temp: 11, psi: 12.5 },{ temp: 12, psi: 13.1 },{ temp: 13, psi: 13.8 },
+                { temp: 14, psi: 14.4 },{ temp: 15, psi: 15 },{ temp: 16, psi: 15.7 },{ temp: 17, psi: 16.4 },
+                { temp: 18, psi: 17 },{ temp: 19, psi: 17.7 },{ temp: 20, psi: 18.4 },{ temp: 21, psi: 19.1 },
+                { temp: 22, psi: 19.9 },{ temp: 23, psi: 20.6 },{ temp: 24, psi: 21.3 },{ temp: 25, psi: 22.1 },
+                { temp: 26, psi: 22.9 },{ temp: 27, psi: 23.7 },{ temp: 28, psi: 24.5 },{ temp: 29, psi: 25.3 },
+                { temp: 30, psi: 26.1 },{ temp: 31, psi: 26.9 },{ temp: 32, psi: 27.8 },{ temp: 33, psi: 28.6 },
+                { temp: 34, psi: 29.5 },{ temp: 35, psi: 30.4 },{ temp: 36, psi: 31.3 },{ temp: 37, psi: 32.2 },
+                { temp: 38, psi: 33.1 },{ temp: 39, psi: 34.1 },{ temp: 40, psi: 35 },{ temp: 41, psi: 36 },
+                { temp: 42, psi: 37 },{ temp: 43, psi: 38 },{ temp: 44, psi: 39 },{ temp: 45, psi: 40.1 },
+                { temp: 46, psi: 41.1 },{ temp: 47, psi: 42.2 },{ temp: 48, psi: 43.2 },{ temp: 49, psi: 44.3 },
+                { temp: 50, psi: 45.4 },{ temp: 51, psi: 46.6 },{ temp: 52, psi: 47.7 },{ temp: 53, psi: 48.9 },
+                { temp: 54, psi: 50 },{ temp: 55, psi: 51.2 },{ temp: 56, psi: 52.4 },{ temp: 57, psi: 53.6 },
+                { temp: 58, psi: 54.9 },{ temp: 59, psi: 56.1 },{ temp: 60, psi: 57.4 },{ temp: 61, psi: 58.7 },
+                { temp: 62, psi: 60 },{ temp: 63, psi: 61.3 },{ temp: 64, psi: 62.7 },{ temp: 65, psi: 64 },
+                { temp: 66, psi: 65.4 },{ temp: 67, psi: 66.8 },{ temp: 68, psi: 68.2 },{ temp: 69, psi: 69.7 },
+                { temp: 70, psi: 71.1 },{ temp: 71, psi: 72.6 },{ temp: 72, psi: 74.1 },{ temp: 73, psi: 75.6 },
+                { temp: 74, psi: 77.1 },{ temp: 75, psi: 78.7 },{ temp: 76, psi: 80.2 },{ temp: 77, psi: 81.8 },
+                { temp: 78, psi: 83.4 },{ temp: 79, psi: 85 },{ temp: 80, psi: 86.7 },{ temp: 81, psi: 88.4 },
+                { temp: 82, psi: 90 },{ temp: 83, psi: 91.8 },{ temp: 84, psi: 93.5 },{ temp: 85, psi: 95.2 },
+                { temp: 86, psi: 97 },{ temp: 87, psi: 98.8 },{ temp: 88, psi: 100.6 },{ temp: 89, psi: 102.5 },
+                { temp: 90, psi: 104.3 },{ temp: 91, psi: 106.2 },{ temp: 92, psi: 108.1 },{ temp: 93, psi: 110 },
+                { temp: 94, psi: 112 },{ temp: 95, psi: 114 },{ temp: 96, psi: 115.9 },{ temp: 97, psi: 118 },
+                { temp: 98, psi: 120 },{ temp: 99, psi: 122.1 },{ temp: 100, psi: 124.2 },{ temp: 101, psi: 126.3 },
+                { temp: 102, psi: 128.4 },{ temp: 103, psi: 130.6 },{ temp: 104, psi: 132.8 },{ temp: 105, psi: 135 },
+                { temp: 106, psi: 137.2 },{ temp: 107, psi: 139.5 },{ temp: 108, psi: 141.7 },{ temp: 109, psi: 144 },
+                { temp: 110, psi: 146.4 },{ temp: 111, psi: 148.7 },{ temp: 112, psi: 151.1 },{ temp: 113, psi: 153.5 },
+                { temp: 114, psi: 156 },{ temp: 115, psi: 158.4 },{ temp: 116, psi: 160.9 },{ temp: 117, psi: 163.5 },
+                { temp: 118, psi: 166 },{ temp: 119, psi: 168.6 },{ temp: 120, psi: 171.2 },{ temp: 121, psi: 173.8 },
+                { temp: 122, psi: 176.5 },{ temp: 123, psi: 179.1 },{ temp: 124, psi: 181.8 },{ temp: 125, psi: 184.6 },
+                { temp: 126, psi: 187.4 },{ temp: 127, psi: 190.2 },{ temp: 128, psi: 193 },{ temp: 129, psi: 195.8 },
+                { temp: 130, psi: 198.7 },{ temp: 131, psi: 201.6 },{ temp: 132, psi: 204.6 },{ temp: 133, psi: 207.6 },
+                { temp: 134, psi: 210.6 },{ temp: 135, psi: 213.6 },{ temp: 136, psi: 216.7 },{ temp: 137, psi: 219.8 },
+                { temp: 138, psi: 222.9 },{ temp: 139, psi: 226 },{ temp: 140, psi: 229.2 },{ temp: 141, psi: 232.5 },
+                { temp: 142, psi: 235.7 },{ temp: 143, psi: 239 },{ temp: 144, psi: 242.3 },{ temp: 145, psi: 245.7 },
+                { temp: 146, psi: 249.1 },{ temp: 147, psi: 252.5 },{ temp: 148, psi: 255.9 },{ temp: 149, psi: 259.4 },
+                { temp: 150, psi: 262.9 }
+            ];
+
+            let temp = 'N/A';
+            for (let i = 0; i < ptTableR134a.length - 1; i++) {
+                if (psi >= ptTableR134a[i].psi && psi <= ptTableR134a[i + 1].psi) {
+                    temp = ptTableR134a[i].temp + ((psi - ptTableR134a[i].psi) / (ptTableR134a[i + 1].psi - ptTableR134a[i].psi)) * (ptTableR134a[i + 1].temp - ptTableR134a[i].temp);
+                    temp = temp.toFixed(1);
+                    break;
+                }
+            }
+            return temp;
+        }
+
+        function calculateSaturatedTemp() {
+            const lowSidePsi = parseFloat(document.getElementById("lowSidePsi").value) || 0;
+            const highSidePsi = parseFloat(document.getElementById("highSidePsi").value) || 0;
+
+            const lowSideTemp = getSaturatedTemp(lowSidePsi);
+            const highSideTemp = getSaturatedTemp(highSidePsi);
+
+            document.getElementById("lowSideTemp").innerText = lowSideTemp;
+            document.getElementById("highSideTemp").innerText = highSideTemp;
+
+            calculateTempDifference();
+            calculateSubcooling();
+            calculateACRating();
+        }
+
+        function calculateTempDifference() {
+            const lowSideTemp = parseFloat(document.getElementById("lowSideTemp").innerText) || 0;
+            const suctionLineTemp = parseFloat(document.getElementById("suctionLineTemp").value) || 0;
+
+            const tempDifference = suctionLineTemp - lowSideTemp;
+            document.getElementById("tempDifference").innerText = tempDifference.toFixed(2);
+
+            let chargeCondition = "Unknown";
+            let possibleCause = "";
+            if (tempDifference >= 8 && tempDifference <= 12) {
+                chargeCondition = "Normal";
+            } else if (tempDifference > 12) {
+                chargeCondition = "Undercharged";
+                possibleCause = "Low refrigerant level, or suspect a faulty TXV (if reading fluctuates)";
+            } else if (tempDifference < 8) {
+                chargeCondition = "Overcharged";
+                possibleCause = "Overcharged system, restricted airflow, or malfunctioning components.";
+            }
+
+            document.getElementById("chargeCondition").innerText = ` (${chargeCondition})`;
+
+            updatePossibleCauses(possibleCause);
+            updatePerformanceSummary();
+            calculateACRating();
+        }
+
+        function calculateSubcooling() {
+            const highSideTemp = parseFloat(document.getElementById("highSideTemp").innerText) || 0;
+            const condenserOutletTemp = parseFloat(document.getElementById("condenserOutletTemp").value) || 0;
+
+            const subcooling = highSideTemp - condenserOutletTemp;
+            document.getElementById("subcooling").innerText = subcooling.toFixed(2);
+
+            let subcoolingCondition = "Unknown";
+            let possibleCause = "";
+
+            if (subcooling >= 10 && subcooling <= 20) {
+                subcoolingCondition = "Normal";
+            } else if (subcooling < 10) {
+                subcoolingCondition = "Undercharged";
+                possibleCause = "Tech's note: If the automotive AC subcooling is less than 10°F difference between the condenser's outlet temperature and saturation temp, it typically indicates insufficient refrigerant in the system, a faulty TXV, or a potential problem with the condenser's heat exchange efficiency. This could lead to suboptimal cooling performance and higher operating temperatures. <strong>Further diagnostic steps are important to check for leaks, ensure proper refrigerant charge, and verify that the condenser is free of obstructions or damage.</strong>";
+            } else if (subcooling > 20) {
+                subcoolingCondition = "Overcharged";
+                possibleCause = "Tech's note: If the automotive AC subcooling is greater than 20°F difference between the condenser's outlet temperature and saturation temp, it typically indicates a slight overcharged system, low airflow accross the condenser, a restriction in the condenser, TXV or liquid line. <strong>This can lead to reduced system efficiency and potential damage to the compressor. It's essential to have a full diagnosis to discover issue to ensure proper AC system performance is reached.</strong>";
+            }
+
+            document.getElementById("subcoolingCondition").innerText = `(${subcoolingCondition})`;
+
+            updatePossibleCauses(possibleCause);
+            updatePerformanceSummary();
+            calculateACRating();
+        }
+
+        function calculateCoolingTime() {
+            const feelsLikeTemp = parseFloat(document.getElementById("feelsLikeTemp").value) || 0;
+            const centerVentTemp = parseFloat(document.getElementById("centerVentTemp").value) || 0;
+            const volume = parseFloat(document.getElementById("volume").value) || 0;
+            const totalVentFlow = parseFloat(document.getElementById("totalVentFlow").innerText) || 0;
+
+            if (!totalVentFlow || !volume || !feelsLikeTemp || !centerVentTemp) {
+                document.getElementById("coolingTime").innerText = "awaiting vent flow inputs";
+                return;
+            }
+
+            const targetTemp = 65; // Target temperature in Fahrenheit
+            const initialTemp = feelsLikeTemp;
+
+            const coolingRate = totalVentFlow * (initialTemp - centerVentTemp) / volume / 60; // Cooling rate in °F per minute
+
+            const timeToCool = (initialTemp - targetTemp) / coolingRate; // Time to cool in minutes
+
+            const minutes = Math.floor(timeToCool);
+            const seconds = Math.round((timeToCool - minutes) * 60);
+
+            document.getElementById("coolingTime").innerText = `${minutes} min ${seconds} sec`;
+        }
+
+        function updatePossibleCauses(newCause) {
+            const possibleCauseDiv = document.getElementById("possibleCause");
+            possibleCauseDiv.innerHTML = ""; // Clear existing causes
+            if (newCause) {
+                possibleCauseDiv.innerHTML = `<span class="ach-warning">${newCause}</span>`;
+            }
+        }
+
+        function calculateACRating() {
+            const superheat = parseFloat(document.getElementById("tempDifference").innerText) || 0;
+            const subcooling = parseFloat(document.getElementById("subcooling").innerText) || 0;
+
+            let acRating;
+            const difference = Math.abs(subcooling - superheat);
+
+            if (difference <= 10) {
+                acRating = 100; // Excellent rating
+            } else if (difference <= 20) {
+                acRating = 100 - ((difference - 10) * 5); // Linear decrease from 100% to 50%
+            } else {
+                acRating = Math.max(0, 50 - ((difference - 20) * 2)); // Further decrease but not below 0
+            }
+
+            document.getElementById("acRating").innerText = acRating.toFixed(2) + "%";
+            updatePerformanceSummary();
+        }
+
+        function updatePerformanceSummary() {
+            const zipCode = document.getElementById("zipCode").value;
+            const vehicleType = document.getElementById("vehicleType").value;
+            const volume = document.getElementById("volume").value;
+            const ambientTemp = document.getElementById("ambientTemp").value;
+            const relativeHumidity = document.getElementById("relativeHumidity").value;
+            const feelsLikeTemp = document.getElementById("feelsLikeTemp").value;
+            const centerVentTemp = document.getElementById("centerVentTemp").value;
+            const centerReading = document.getElementById("centerReading").value;
+            const leftReading = document.getElementById("leftReading").value;
+            const rightReading = document.getElementById("rightReading").value;
+            const lowSidePsi = document.getElementById("lowSidePsi").value;
+            const lowSideTemp = document.getElementById("lowSideTemp").innerText;
+            const highSidePsi = document.getElementById("highSidePsi").value;
+            const highSideTemp = document.getElementById("highSideTemp").innerText;
+            const suctionLineTemp = document.getElementById("suctionLineTemp").value;
+            const tempDifference = document.getElementById("tempDifference").innerText;
+            const chargeCondition = document.getElementById("chargeCondition").innerText;
+            const condenserOutletTemp = document.getElementById("condenserOutletTemp").value;
+            const subcooling = document.getElementById("subcooling").innerText;
+            const subcoolingCondition = document.getElementById("subcoolingCondition").innerText;
+            const lowCFM = document.getElementById("lowCFM").value;
+            const highCFM = document.getElementById("highCFM").value;
+            const totalVentFlow = document.getElementById("totalVentFlow").innerText;
+            const avgVentFlow = document.getElementById("avgVentFlow").innerText;
+            const ach = document.getElementById("ach").innerText;
+            const tempDrop = document.getElementById("tempDrop").innerText;
+            const tempDropRating = document.getElementById("tempDropRating").innerText;
+            const coolingTime = document.getElementById("coolingTime").innerText;
+            const firstName = document.getElementById("firstName").value || "customer";
+            const lastName = document.getElementById("lastName").value || "";
+            const vehicleMake = document.getElementById("vehicleMake").value || "car";
+            const vehicleYear = document.getElementById("vehicleYear").value || "";
+            const acRating = document.getElementById("acRating").innerText;
+            const date = new Date().toLocaleDateString();
+
+            let conditionSummary = "";
+            let systemBalance = "";
+
+            if (chargeCondition.includes("Overcharged")) {
+                conditionSummary += " The evaporator is slightly overcharged with superheat, which is relevant to the cabin's temperature. This can lead to liquid refrigerant entering the compressor, causing mechanical damage and potential failure. We recommend recovering excess refrigerant to the correct level and inspecting for airflow restrictions or a faulty expansion valve.";
+            }
+            if (chargeCondition.includes("Undercharged")) {
+                conditionSummary += " The evaporator is slightly undercharged with superheat, which is relevant to the cabin's temperature. This can lead evaporator icing, causing mechanical damage and potential failure. We recommend recovering refrigerant and recharging to the correct level and inspecting for leaks or faulty expansion valve.";
+            }
+            if (subcoolingCondition.includes("Undercharged")) {
+                conditionSummary += " We found the system to be slightly undercharged. This can lead to insufficient compressor lubrication and potential damage due to overheating. We recommend checking for refrigerant leaks, ensuring the refrigerant charge is correct, and inspecting the condenser for any issues.";
+            } else if (subcoolingCondition.includes("Overcharged")) {
+                conditionSummary += " We found the condenser side to be slightly overcharged. This can lead to the condenser underperforming and reduced system efficiency. Excess refrigerant can cause higher pressure, stressing the compressor and potentially causing damage. We recommend adjusting the refrigerant levels, checking for restrictions in the condenser or liquid line, and ensuring the condenser's efficiency.";
+            }
+
+            if (subcoolingCondition === "Normal" && chargeCondition === "Normal") {
+                systemBalance = `What this means, is your a/c's system is working efficiently and balanced, with an AC Rating of ${acRating}. Remember to check your cabin air filter regularly to maintain optimal ACH performance and overall A/C efficiency.`;
+            } else if (subcoolingCondition === "Normal") {
+                systemBalance = `What this means, is your a/c' evaporator is considered to be slightly ${chargeCondition} and the underhood section is considered to be normal with an AC Rating of ${acRating}. Any one of our Certified A/C specialists are ready to further any concerns for you today.`;
+            } else if (chargeCondition === "Normal") {
+                systemBalance = `What this means, is your a/c's evaporator performance is considered to be normal and the condenser to be slightly ${subcoolingCondition} with an AC Rating of ${acRating}. Any one of our Certified A/C specialists are ready to further diagnose this condition for you today.`;
+            } else {
+                systemBalance = `What this means is your a/c's performance between the inside and the underhood system is balanced with an AC Rating of ${acRating}. Any one of our Certified A/C specialists are ready to further diagnose any concerns for you today.`;
+            }
+
+            const performanceSummary = `
+<h2><strong>${vehicleYear} ${vehicleMake} A/C Performance Summary Prepared for ${firstName} ${lastName} on ${date}</strong></h2>
+<p>The A/C Performance Report empowers our certified technicians to accurately evaluate your vehicle's air conditioning system. By providing detailed analysis and clear data, it ensures precise diagnosis and informed decisions for any necessary repairs or maintenance. This comprehensive evaluation, conducted with a standardized testing procedure, guarantees efficient A/C operation for optimal comfort and reduced fuel consumption. Our commitment to preventive maintenance identifies issues early, preventing costly future repairs. Trust in our professionalism and expertise to enhance your satisfaction and confidence in our automotive care, ensuring your vehicle's A/C system is in expert hands.
+                <br><br><strong>Dear ${firstName},</strong> your beautiful ${vehicleMake}'s A/C system was evaluated under the current weather conditions for zip code ${zipCode}. Its cabin air volume is approximately ${volume} cubic feet, which is ideal for this typical ${vehicleType} car, and so we've selected the appropriate testing standard for this ${vehicleMake}'s A/C's Performance. <br><br><strong>Testing Conditions:The outside air temperature is ${ambientTemp}°F</strong> with a relative humidity of ${relativeHumidity}% and a "Feels Like" temperature at ${feelsLikeTemp}°F, <strong>your air vents' temperature is consistently delivering ${centerVentTemp}°F</strong>, reducing the outside air temperature by <strong>${tempDrop}°</strong>, which is considered <strong>${tempDropRating}</strong>.The airflow accross the vents are moving at ${totalVentFlow} cubic feet per minute, allowing to refresh your cabin's air volume at ${ach} times per hour.
+                <br><br><strong>Condition Summary:</strong> ${conditionSummary} ${systemBalance}
+                <br><br><strong>Data points:</strong> The low-side pressure gauge read ${lowSidePsi}psig with a corresponding evaporator refrigerant saturation temperature of ${lowSideTemp}°F, while the high-side pressure was ${highSidePsi}psig with a condenser refrigerant saturation temperature of ${highSideTemp}°F.
+                <br> The evaporator's suction line temperature was ${suctionLineTemp}°F, resulting in a superheat of ${tempDifference}°F.
+                <br> The condenser's outlet temperature was ${condenserOutletTemp}°F, indicating a subcooling effect of ${subcooling}°F.
+                <br><br><strong>Results & Conclusion:</strong>
+                </p>
+                <ul>
+                <li>Evaporator Superheat differential is <strong>${chargeCondition}</strong></li>                    
+                <li>Condenser Subcooling is <strong>${subcoolingCondition}</strong></li> 
+                <li>Your ${vehicleMake}'s vents are flowing at ${totalVentFlow}(cfm), <strong>providing ${ach}</strong> cabin air changes per hour.</li>
+                <li>AC is removing the outside air temp by <strong>${tempDrop}°</strong> (Diff. 30° ~ 40°)</li>
+                <li>Your ${vehicleMake}'s estimated cabin cool down to 65°F in <strong>${coolingTime}</strong></li>
+                <li><strong>AC Rating: ${acRating}</strong></li>
+                </ul>
+            `;
+
+            const performanceSummaryDiv = document.getElementById("performanceSummary");
+            performanceSummaryDiv.innerHTML = performanceSummary;
+        }
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function showPosition(position) {
+            var lat = position.coords.latitude;
+            var lon = position.coords.longitude;
+            fetchZipCode(lat, lon);
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    console.log("User denied the request for Geolocation.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    console.log("Location information is unavailable.");
+                    break;
+                case error.TIMEOUT:
+                    console.log("The request to get user location timed out.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    console.log("An unknown error occurred.");
+                    break;
+            }
+        }
+
+        async function fetchZipCode(lat, lon) {
+            const apiKey = '06f6efb57808e55a66e6c60fc0acb668a650b60'; // Replace with your Geocodio API key
+            const url = `https://api.geocod.io/v1.7/reverse?q=${lat},${lon}&api_key=${apiKey}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data && data.results && data.results.length > 0) {
+                    const zipCode = data.results[0].address_components.zip; // Fetch the zip code from Geocodio
+                    document.getElementById('zipCode').value = zipCode;
+                    fetchWeatherData();
+                } else {
+                    document.getElementById('zipCode').value = 'Zip code not found.';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function generateSummaryFile() {
+            const performanceSummary = document.getElementById("performanceSummary").innerHTML;
+            const lastName = document.getElementById("lastName").value || "";
+            const vehicleYear = document.getElementById("vehicleYear").value || "";
+            const vehicleMake = document.getElementById("vehicleMake").value || "";
+            const fileName = `${lastName}-${vehicleYear}-${vehicleMake}.html`;
+
+            const blob = new Blob([performanceSummary], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = fileName;
+            a.style.display = "none";
+            document.body.appendChild(a);
+            a.click();
+            URL.revokeObjectURL(url);
+            a.remove();
+        }
+    </script>
+</body>
+</html>
