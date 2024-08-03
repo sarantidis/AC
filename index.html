@@ -873,24 +873,39 @@
             }
         }
 
-        function generateSummaryFile() {
-            const performanceSummary = document.getElementById("performanceSummary").innerHTML;
-            const lastName = document.getElementById("lastName").value || "";
-            const vehicleYear = document.getElementById("vehicleYear").value || "";
-            const vehicleMake = document.getElementById("vehicleMake").value || "";
-            const fileName = `${lastName}-${vehicleYear}-${vehicleMake}.html`;
+function generateSummaryFile() {
+    const performanceSummary = document.getElementById("performanceSummary").innerHTML;
+    const lastName = document.getElementById("lastName").value || "";
+    const vehicleYear = document.getElementById("vehicleYear").value || "";
+    const vehicleMake = document.getElementById("vehicleMake").value || "";
+    const fileName = `${lastName}-${vehicleYear}-${vehicleMake}.html`;
 
-            const blob = new Blob([performanceSummary], { type: "text/html" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = fileName;
-            a.style.display = "none";
-            document.body.appendChild(a);
-            a.click();
-            URL.revokeObjectURL(url);
-            a.remove();
-        }
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${fileName}</title>
+        </head>
+        <body>
+            ${performanceSummary}
+        </body>
+        </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
+}
+
     </script>
 </body>
 </html>
