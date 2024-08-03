@@ -21,7 +21,7 @@
         .container {
             width: auto;
             margin: auto;
-            padding: 20;
+            padding: 0;
             background-color: #fff;
             box-shadow: 0 0 0px rgba(0, 0, 0, 0);
             overflow: visible;
@@ -37,7 +37,7 @@
         }
         .description {
             font-size: 1em;
-            text-align: center;
+            text-align: left;
             color: #555;
             margin-bottom: 0px;
             max-width: 90%;
@@ -207,20 +207,21 @@
             <label for="highCFM">Higher-end Cabin Air Changes/hr:</label>
             <input type="number" id="highCFM" readonly>
         </div>
+
         <div class="form-group-row" style="font-size: 14px;">
             <div class="form-group">
                 <label for="leftReading" class="below">Left Vent Air-speed (ft/m):</label>
                 <input type="number" id="leftReading" class="air-speed" oninput="calculateACHAndRating(); calculateCoolingTime(); updatePerformanceSummary();" style="width: 120px;">
             </div>
             <div class="form-group">
+                <label for="centerReading" class="below">Center Vent Air-speed (ft/m):</label>
+                <input type="number" id="centerReading" class="air-speed" oninput="calculateACHAndRating(); calculateCoolingTime(); updatePerformanceSummary();" style="width: 120px;">
+            </div>    
+            <div class="form-group">
                 <label for="rightReading" class="below">Right Vent Air-speed (ft/m):</label>
                 <input type="number" id="rightReading" class="air-speed" oninput="calculateACHAndRating(); calculateCoolingTime(); updatePerformanceSummary();" style="width: 120px;">
             </div>
-            <div class="form-group">
-                <label for="centerReading" class="below">Center Vent Air-speed (ft/m):</label>
-                <input type="number" id="centerReading" class="air-speed" oninput="calculateACHAndRating(); calculateCoolingTime(); updatePerformanceSummary();" style="width: 120px;">
-            </div>
-        </div>
+        </div>   
         <div class="form-group">
             <label for="centerVentTemp">Center Vent Air Temp (°F):</label>
             <input type="number" id="centerVentTemp" oninput="calculateTempDrop(); calculateCoolingTime(); updatePerformanceSummary();">
@@ -381,7 +382,7 @@
                 } else if (vehicleType.toLowerCase().includes("truck") || vehicleType.toLowerCase().includes("pickup")) {
                     mappedVehicleType = "Truck";
                     estimatedVolume = 150; // Example volume in cubic feet
-                } else if (vehicleType.toLowerCase().includes("van") || vehicleType.toLowerCase().includes("minivan")|| vehicleType.toLowerCase().includes("mpv")) {
+                } else if (vehicleType.toLowerCase().includes("van") || vehicleType.toLowerCase().includes("minivan")) {
                     mappedVehicleType = "Van";
                     estimatedVolume = 170; // Example volume in cubic feet
                 } else if (vehicleType.toLowerCase().includes("coupe") || vehicleType.toLowerCase().includes("convertible")) {
@@ -873,39 +874,22 @@
             }
         }
 
-function generateSummaryFile() {
-    const performanceSummary = document.getElementById("performanceSummary").innerHTML;
-    const lastName = document.getElementById("lastName").value || "";
-    const vehicleYear = document.getElementById("vehicleYear").value || "";
-    const vehicleMake = document.getElementById("vehicleMake").value || "";
-    const fileName = `${lastName}-${vehicleYear}-${vehicleMake}.html`;
+        function generateSummaryFile() {
+            const performanceSummary = document.getElementById("performanceSummary").innerHTML;
+            const lastName = document.getElementById("lastName").value || "";
+            const vehicleYear = document.getElementById("vehicleYear").value || "";
+            const vehicleMake = document.getElementById("vehicleMake").value || "";
+            const fileName = `${lastName}-${vehicleYear}-${vehicleMake}.html`;
 
-    const htmlContent = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>${fileName}</title>
-        </head>
-        <body>
-            ${performanceSummary}
-        </body>
-        </html>
-    `;
+            const blob = new Blob([performanceSummary], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
 
-    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    URL.revokeObjectURL(url);
-    a.remove();
-}
-
+            // Open the generated HTML content in a new tab/window
+            const newWindow = window.open();
+            newWindow.document.write(performanceSummary);
+            newWindow.document.close();
+            newWindow.document.title = fileName;
+        }
     </script>
 </body>
 </html>
