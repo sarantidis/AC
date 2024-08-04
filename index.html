@@ -4,7 +4,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A/C Mobile V4</title>
+    <title>A/C Mobile V4.1</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -140,7 +140,7 @@
         <h1>A/C Performance Report</h1>
         <div class="description">
             The A/C Performance Report is designed to establish a baseline for accurately evaluating a vehicle's air conditioning system. By providing detailed analysis and clear data, it gives you a direction for making informed decisions when recommending repairs or maintenance, as well as providing a post-analysis comparison. This ensures that any work performed is necessary and effective, ultimately improving customer satisfaction and trust in our service.
-            <h3>Ideally, testing is conducted with the system set to MAX Cooling, the lowest temperature setting, condenser fan running, the blower on high, and the engine at 1,500 RPMs.</h3>
+            <h3>Idealy, testing is conducted with the system set to MAX Cooling, the lowest temperature setting, condensrer fan running, the blower on high, and the engine at 1,500 RPMs.</h3>
         </div>
         <div class="form-group">
             <label for="vin">VIN:</label>
@@ -216,7 +216,7 @@
             <div class="form-group">
                 <label for="centerReading" class="below">Center Vent Air-speed (ft/m):</label>
                 <input type="number" id="centerReading" class="air-speed" oninput="calculateACHAndRating(); calculateCoolingTime(); updatePerformanceSummary();" style="width: 120px;">
-            </div>
+            </div>    
             <div class="form-group">
                 <label for="rightReading" class="below">Right Vent Air-speed (ft/m):</label>
                 <input type="number" id="rightReading" class="air-speed" oninput="calculateACHAndRating(); calculateCoolingTime(); updatePerformanceSummary();" style="width: 120px;">
@@ -226,7 +226,7 @@
             <label for="centerVentTemp">Center Vent Air Temp (°F):</label>
             <input type="number" id="centerVentTemp" oninput="calculateTempDrop(); calculateCoolingTime(); updatePerformanceSummary();">
         </div>
-        
+
         <div class="gauge-readings">
             <div class="form-group">
                 <strong>Gauge Readings</strong> 
@@ -234,12 +234,14 @@
             <div class="form-group">
                 <label for="lowSidePsi" class="low-side-label">Low-side (psi):</label>
                 <input type="number" id="lowSidePsi" class="low-side-input" oninput="calculateSaturatedTemp(); updatePerformanceSummary();">
-                <label for="lowSideTemp"><strong>Saturation Temp:</strong> <span id="lowSideTemp"></span>°F <span id="lowSideCondition"></span></strong></label>
+                <label for="lowSideTemp"><strong>  Saturation Temp:</label>
+                <span id="lowSideTemp"></strong><label> °F</label></span>
             </div>
             <div class="form-group">
                 <label for="highSidePsi" class="high-side-label">High-side (psi):</label>
                 <input type="number" id="highSidePsi" class="high-side-input" oninput="calculateSaturatedTemp(); updatePerformanceSummary();">
-                <label for="highSideTemp"><strong>Saturation Temp:</strong> <span id="highSideTemp"></span>°F <span id="highSideCondition"></span></strong></label>
+                <label for="highSideTemp"><strong>  Saturation Temp:</label>
+                <span id="highSideTemp"></strong><label> °F</label></span>
             </div>
             <div class="form-group">
                 <strong>Evaporator Readings</strong> 
@@ -299,7 +301,7 @@
         <div id="performanceSummary">
             <!-- Performance Summary will be inserted here -->
         </div>
-        <button onclick="generateSummaryFile()">Customer's View</button>
+        <button onclick="generateSummaryFile()">Customer Summary</button>
         <div class="footer">
             <p>&copy; 2024 sarantech, LLC - All rights reserved.</p>
             <p>Author: Peter Sarantidis - ASE Certified Master Tech, Advanced Levels L1,L3,L4</p>
@@ -488,7 +490,6 @@
 
             updatePossibleCauses(achWarning);
             calculateCoolingTime();
-            calculateACRating();
             updatePerformanceSummary();
         }
 
@@ -548,7 +549,6 @@
             // Update possible causes
             updatePossibleCauses(possibleCause);
 
-            calculateACRating();
             updatePerformanceSummary();
         }
 
@@ -631,27 +631,9 @@
             document.getElementById("lowSideTemp").innerText = lowSideTemp;
             document.getElementById("highSideTemp").innerText = highSideTemp;
 
-            let lowSideCondition = getPressureCondition(lowSidePsi, 'low');
-            let highSideCondition = getPressureCondition(highSidePsi, 'high');
-
-            document.getElementById("lowSideCondition").innerText = `(${lowSideCondition})`;
-            document.getElementById("highSideCondition").innerText = `(${highSideCondition})`;
-
             calculateTempDifference();
             calculateSubcooling();
             calculateACRating();
-            updatePerformanceSummary();
-        }
-
-        function getPressureCondition(psi, type) {
-            if (type === 'low') {
-                if (psi < 30) return 'Undercharged';
-                if (psi > 40) return 'Overcharged';
-            } else if (type === 'high') {
-                if (psi < 150) return 'Undercharged';
-                if (psi > 250) return 'Overcharged';
-            }
-            return 'Normal';
         }
 
         function calculateTempDifference() {
@@ -697,7 +679,7 @@
                 possibleCause = "Tech's note: If the automotive AC subcooling is less than 10°F difference between the condenser's outlet temperature and saturation temp, it typically indicates insufficient refrigerant in the system, a faulty TXV, or a potential problem with the condenser's heat exchange efficiency. This could lead to suboptimal cooling performance and higher operating temperatures. <strong>Further diagnostic steps are important to check for leaks, ensure proper refrigerant charge, and verify that the condenser is free of obstructions or damage.</strong>";
             } else if (subcooling > 20) {
                 subcoolingCondition = "Overcharged";
-                possibleCause = "Tech's note: If the automotive AC subcooling is greater than 20°F difference between the condenser's outlet temperature and saturation temp, it typically indicates a slight overcharged system, low airflow across the condenser, a restriction in the condenser, TXV or liquid line. <strong>This can lead to reduced system efficiency and potential damage to the compressor. It's essential to have a full diagnosis to discover issue to ensure proper AC system performance is reached.</strong>";
+                possibleCause = "Tech's note: If the automotive AC subcooling is greater than 20°F difference between the condenser's outlet temperature and saturation temp, it typically indicates a slight overcharged system, low airflow accross the condenser, a restriction in the condenser, TXV or liquid line. <strong>This can lead to reduced system efficiency and potential damage to the compressor. It's essential to have a full diagnosis to discover issue to ensure proper AC system performance is reached.</strong>";
             }
 
             document.getElementById("subcoolingCondition").innerText = `(${subcoolingCondition})`;
@@ -742,11 +724,6 @@
         function calculateACRating() {
             const superheat = parseFloat(document.getElementById("tempDifference").innerText) || 0;
             const subcooling = parseFloat(document.getElementById("subcooling").innerText) || 0;
-
-            if (isNaN(superheat) || isNaN(subcooling)) {
-                document.getElementById("acRating").innerText = "0.00%";
-                return;
-            }
 
             let acRating;
             const difference = Math.abs(subcooling - superheat);
@@ -827,9 +804,9 @@
             const performanceSummary = `
 <h2><strong>${vehicleYear} ${vehicleMake} A/C Performance Summary Prepared for ${firstName} ${lastName} on ${date}</strong></h2>
 <p>The A/C Performance Report empowers our certified technicians to accurately evaluate your vehicle's air conditioning system. By providing detailed analysis and clear data, it ensures precise diagnosis and informed decisions for any necessary repairs or maintenance. This comprehensive evaluation, conducted with a standardized testing procedure, guarantees efficient A/C operation for optimal comfort and reduced fuel consumption. Our commitment to preventive maintenance identifies issues early, preventing costly future repairs. Trust in our professionalism and expertise to enhance your satisfaction and confidence in our automotive care, ensuring your vehicle's A/C system is in expert hands.
-                <br><br><strong>Dear ${firstName},</strong> your beautiful ${vehicleMake}'s A/C system was evaluated under the current weather conditions for zip code ${zipCode}. Its cabin air volume is approximately ${volume} cubic feet, which is ideal for this typical ${vehicleType} car, and so we've selected the appropriate testing standard for this ${vehicleMake}'s A/C's Performance. <br><br><strong>Testing Conditions:The outside air temperature is ${ambientTemp}°F</strong> with a relative humidity of ${relativeHumidity}% and a "Feels Like" temperature at ${feelsLikeTemp}°F, <strong>your air vents' temperature is consistently delivering ${centerVentTemp}°F</strong>, reducing the outside air temperature by <strong>${tempDrop}°</strong>, which is considered <strong>${tempDropRating}</strong>.The airflow across the vents are moving at ${totalVentFlow} cubic feet per minute, allowing to refresh your cabin's air volume at ${ach} times per hour.
+                <br><br><strong>Dear ${firstName},</strong> your beautiful ${vehicleMake}'s A/C system was evaluated under the current weather conditions for zip code ${zipCode}. Its cabin air volume is approximately ${volume} cubic feet, which is ideal for this typical ${vehicleType} car, and so we've selected the appropriate testing standard for this ${vehicleMake}'s A/C's Performance. <br><br><strong>Testing Conditions:The outside air temperature is ${ambientTemp}°F</strong> with a relative humidity of ${relativeHumidity}% and a "Feels Like" temperature at ${feelsLikeTemp}°F, <strong>your air vents' temperature is consistently delivering ${centerVentTemp}°F</strong>, reducing the outside air temperature by <strong>${tempDrop}°</strong>, which is considered <strong>${tempDropRating}</strong>.The airflow accross the vents are moving at ${totalVentFlow} cubic feet per minute, allowing to refresh your cabin's air volume at ${ach} times per hour.
                 <br><br><strong>Condition Summary:</strong> ${conditionSummary} ${systemBalance}
-                <br><br><strong>Data points:</strong> The low-side pressure gauge read ${lowSidePsi}psig with a corresponding evaporator refrigerant saturation temperature of ${lowSideTemp}°F <strong>${chargeCondition}</strong>, while the high-side pressure was ${highSidePsi}psig with a condenser refrigerant saturation temperature of ${highSideTemp}°F <strong>${subcoolingCondition}</strong>.
+                <br><br><strong>Data points:</strong> The low-side pressure gauge read ${lowSidePsi}psig with a corresponding evaporator refrigerant saturation temperature of ${lowSideTemp}°F, while the high-side pressure was ${highSidePsi}psig with a condenser refrigerant saturation temperature of ${highSideTemp}°F.
                 <br> The evaporator's suction line temperature was ${suctionLineTemp}°F, resulting in a superheat of ${tempDifference}°F.
                 <br> The condenser's outlet temperature was ${condenserOutletTemp}°F, indicating a subcooling effect of ${subcooling}°F.
                 <br><br><strong>Results & Conclusion:</strong>
@@ -898,26 +875,21 @@
         }
 
         function generateSummaryFile() {
-    const performanceSummary = document.getElementById("performanceSummary").innerHTML;
-    const lastName = document.getElementById("lastName").value || "";
-    const vehicleYear = document.getElementById("vehicleYear").value || "";
-    const vehicleMake = document.getElementById("vehicleMake").value || "";
-    const fileName = `${lastName}-${vehicleYear}-${vehicleMake}.html`;
+            const performanceSummary = document.getElementById("performanceSummary").innerHTML;
+            const lastName = document.getElementById("lastName").value || "";
+            const vehicleYear = document.getElementById("vehicleYear").value || "";
+            const vehicleMake = document.getElementById("vehicleMake").value || "";
+            const fileName = `${lastName}-${vehicleYear}-${vehicleMake}.html`;
 
-    const blob = new Blob([performanceSummary], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
+            const blob = new Blob([performanceSummary], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    link.target = "_blank"; // This ensures the file opens in a new tab
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-
-    URL.revokeObjectURL(url);
-    link.remove();
-}
-</script>
+            // Open the generated HTML content in a new tab/window
+            const newWindow = window.open();
+            newWindow.document.write(performanceSummary);
+            newWindow.document.close();
+            newWindow.document.title = fileName;
+        }
+    </script>
 </body>
 </html>
