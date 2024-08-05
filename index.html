@@ -639,20 +639,17 @@ function updatePerformanceSummary() {
 
         function getSaturatedTemp(psi) {
             const ptTableR134a = [
-                { temp: -49, psi: -18.4 },{ temp: -48, psi: -18 },{ temp: -47, psi: -17.6 },
-                { temp: -46, psi: -17.3 },{ temp: -45, psi: -16.9 },{ temp: -44, psi: -16.5 },
-                { temp: -43, psi: -16.1 },{ temp: -42, psi: -15.7 },{ temp: -41, psi: -15.2 },
-                { temp: -40, psi: -14.8 },{ temp: -39, psi: -14.4 },{ temp: -38, psi: -13.9 },
-                { temp: -37, psi: -13.4 },{ temp: -36, psi: -13 },{ temp: -35, psi: -12.5 },
-                { temp: -34, psi: -12 },{ temp: -33, psi: -11.4 },{ temp: -32, psi: -10.9 },
-                { temp: -31, psi: -10.4 },{ temp: -30, psi: -9.8 },{ temp: -29, psi: -9.3 },
-                { temp: -28, psi: -8.7 },{ temp: -27, psi: -8.1 },{ temp: -26, psi: -7.5 },
-                { temp: -25, psi: -6.9 },{ temp: -24, psi: -6.3 },{ temp: -23, psi: -5.7 },
-                { temp: -22, psi: -5 },{ temp: -21, psi: -4.3 },{ temp: -20, psi: -3.7 },
-                { temp: -19, psi: -3 },{ temp: -18, psi: -2.3 },{ temp: -17, psi: -1.5 },
-                { temp: -16, psi: 0.8 },{ temp: -15, psi: 0.1 },{ temp: -14, psi: 0.4 },
-                { temp: -13, psi: 0.7 },{ temp: -12, psi: 1.1 },{ temp: -11, psi: 1.5 },
-                { temp: -10, psi: 1.9 },{ temp: -9, psi: 2.4 },{ temp: -8, psi: 2.8 },{ temp: -7, psi: 3.2 },
+                { temp: -49, psi: -18.4 },{ temp: -48, psi: -18 },{ temp: -47, psi: -17.6 },{ temp: -46, psi: -17.3 },
+                { temp: -45, psi: -16.9 },{ temp: -44, psi: -16.5 },{ temp: -43, psi: -16.1 },{ temp: -42, psi: -15.7 },
+                { temp: -41, psi: -15.2 },{ temp: -40, psi: -14.8 },{ temp: -39, psi: -14.4 },{ temp: -38, psi: -13.9 },
+                { temp: -37, psi: -13.4 },{ temp: -36, psi: -13 },{ temp: -35, psi: -12.5 },{ temp: -34, psi: -12 },
+                { temp: -33, psi: -11.4 },{ temp: -32, psi: -10.9 },{ temp: -31, psi: -10.4 },{ temp: -30, psi: -9.8 },
+                { temp: -29, psi: -9.3 },{ temp: -28, psi: -8.7 },{ temp: -27, psi: -8.1 },{ temp: -26, psi: -7.5 },
+                { temp: -25, psi: -6.9 },{ temp: -24, psi: -6.3 },{ temp: -23, psi: -5.7 },{ temp: -22, psi: -5 },
+                { temp: -21, psi: -4.3 },{ temp: -20, psi: -3.7 },{ temp: -19, psi: -3 },{ temp: -18, psi: -2.3 },
+                { temp: -17, psi: -1.5 },{ temp: -16, psi: 0.8 },{ temp: -15, psi: 0.1 },{ temp: -14, psi: 0.4 },
+                { temp: -13, psi: 0.7 },{ temp: -12, psi: 1.1 },{ temp: -11, psi: 1.5 },{ temp: -10, psi: 1.9 },
+                { temp: -9, psi: 2.4 },{ temp: -8, psi: 2.8 },{ temp: -7, psi: 3.2 },
                 { temp: -6, psi: 3.6 },{ temp: -5, psi: 4.1 },{ temp: -4, psi: 4.6 },{ temp: -3, psi: 5 },
                 { temp: -2, psi: 5.5 },{ temp: -1, psi: 6 },{ temp: 0, psi: 6.5 },{ temp: 1, psi: 7 },
                 { temp: 2, psi: 7.5 },{ temp: 3, psi: 8 },{ temp: 4, psi: 8.5 },{ temp: 5, psi: 9.1 },
@@ -692,7 +689,15 @@ function updatePerformanceSummary() {
                 { temp: 138, psi: 222.9 },{ temp: 139, psi: 226 },{ temp: 140, psi: 229.2 },{ temp: 141, psi: 232.5 },
                 { temp: 142, psi: 235.7 },{ temp: 143, psi: 239 },{ temp: 144, psi: 242.3 },{ temp: 145, psi: 245.7 },
                 { temp: 146, psi: 249.1 },{ temp: 147, psi: 252.5 },{ temp: 148, psi: 255.9 },{ temp: 149, psi: 259.4 },
-                { temp: 150, psi: 262.9 }
+                { temp: 150, psi: 262.9 },{ temp: 151, psi: 266.4 },{ temp: 152, psi: 269.9 },{ temp: 153, psi: 273.5 },
+	            { temp: 154, psi: 277.1 },{ temp: 155, psi: 280.7 },{ temp: 156, psi: 284.4 },{ temp: 157, psi: 288.1 },
+        	    { temp: 158, psi: 291.8 },{ temp: 159, psi: 295.6 },{ temp: 160, psi: 299.3 },{ temp: 161, psi: 303.1 },
+        	    { temp: 162, psi: 306.9 },{ temp: 163, psi: 310.8 },{ temp: 164, psi: 314.7 },{ temp: 165, psi: 318.6 },
+        	    { temp: 166, psi: 322.5 },{ temp: 167, psi: 326.5 },{ temp: 168, psi: 330.5 },{ temp: 169, psi: 334.5 },
+        	    { temp: 170, psi: 338.6 },{ temp: 171, psi: 342.6 },{ temp: 172, psi: 346.7 },{ temp: 173, psi: 350.9 },
+        	    { temp: 174, psi: 355.0 },{ temp: 175, psi: 359.2 },{ temp: 176, psi: 363.4 },{ temp: 177, psi: 367.7 },
+        	    { temp: 178, psi: 372.0 },{ temp: 179, psi: 376.3 },{ temp: 180, psi: 380.6 },{ temp: 181, psi: 385.0 },
+    	        { temp: 182, psi: 389.4 },{ temp: 183, psi: 393.8 },{ temp: 184, psi: 398.3 },{ temp: 185, psi: 400.0 }
             ];
 
             let temp = 'N/A';
