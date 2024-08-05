@@ -4,7 +4,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A/C Mobile V2.22</title>
+    <title>A/C Mobile V2.3/title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -233,12 +233,12 @@
             </div>
             <div class="form-group">
                 <label for="lowSidePsi" class="low-side-label">Low-side (psi):</label>
-                <input type="number" id="lowSidePsi" class="low-side-input" oninput="calculateSaturatedTemp(); updatePerformanceSummary();">
+                <input type="number" id="lowSidePsi" class="low-side-input" oninput="calculateSaturatedTemp(); calculateCompressionRatio(); updatePerformanceSummary();">
                 <label for="lowSideTemp"><strong>Saturation Temp:</strong> <span id="lowSideTemp"></span>°F <span id="lowSideCondition"></span></strong></label>
             </div>
             <div class="form-group">
                 <label for="highSidePsi" class="high-side-label">High-side (psi):</label>
-                <input type="number" id="highSidePsi" class="high-side-input" oninput="calculateSaturatedTemp(); updatePerformanceSummary();">
+                <input type="number" id="highSidePsi" class="high-side-input" oninput="calculateSaturatedTemp(); calculateCompressionRatio(); updatePerformanceSummary();">
                 <label for="highSideTemp"><strong>Saturation Temp:</strong> <span id="highSideTemp"></span>°F <span id="highSideCondition"></span></strong></label>
             </div>
             <div class="form-group">
@@ -280,6 +280,9 @@
                 </div>
                 <div class="result-item">
                     <strong>AC Rating (%):</strong> <span id="acRating"></span>
+                </div>
+                <div class="result-item alternate-row">
+                    <strong>Compression Ratio:</strong> <span id="compressionRatio"></span> <span id="compressionCondition"></span>
                 </div>
             </div>
         </div>
@@ -491,145 +494,61 @@
             calculateACRating();
             updatePerformanceSummary();
         }
-function calculateTempDrop() {
-    const ambientTemp = parseFloat(document.getElementById("ambientTemp").value) || 0;
-    const centerVentTemp = parseFloat(document.getElementById("centerVentTemp").value) || 0;
-    const relativeHumidity = parseFloat(document.getElementById("relativeHumidity").value) || 0;
-    const feelsLikeTemp = parseFloat(document.getElementById("feelsLikeTemp").value) || 0;
-    const tempDrop = ambientTemp - centerVentTemp;
-    document.getElementById("tempDrop").innerText = tempDrop.toFixed(2);
 
-    let expectedTempDropLow, expectedTempDropHigh;
-    let possibleCause = "";
+        function calculateTempDrop() {
+            const ambientTemp = parseFloat(document.getElementById("ambientTemp").value) || 0;
+            const centerVentTemp = parseFloat(document.getElementById("centerVentTemp").value) || 0;
+            const relativeHumidity = parseFloat(document.getElementById("relativeHumidity").value) || 0;
+            const feelsLikeTemp = parseFloat(document.getElementById("feelsLikeTemp").value) || 0;
+            const tempDrop = ambientTemp - centerVentTemp;
+            document.getElementById("tempDrop").innerText = tempDrop.toFixed(2);
 
-    if (ambientTemp > 90) {
-        if (relativeHumidity > 60) {
-            expectedTempDropLow = 25;
-            expectedTempDropHigh = 35;
-        } else if (relativeHumidity > 30) {
-            expectedTempDropLow = 30;
-            expectedTempDropHigh = 40;
-        } else {
-            expectedTempDropLow = 35;
-            expectedTempDropHigh = 45;
-        }
-    } else if (ambientTemp > 60) {
-        if (relativeHumidity > 50) {
-            expectedTempDropLow = 20;
-            expectedTempDropHigh = 30;
-        } else if (relativeHumidity > 30) {
-            expectedTempDropLow = 25;
-            expectedTempDropHigh = 35;
-        } else {
-            expectedTempDropLow = 30;
-            expectedTempDropHigh = 40;
-        }
-    } else {
-        expectedTempDropLow = 10;
-        expectedTempDropHigh = 20;
-    }
+            let expectedTempDropLow, expectedTempDropHigh;
+            let possibleCause = "";
 
-    let tempDropRating = "";
-    if (tempDrop >= expectedTempDropLow && tempDrop <= expectedTempDropHigh) {
-        tempDropRating = "cooling good";
-        if (tempDrop >= (expectedTempDropHigh - (expectedTempDropHigh - expectedTempDropLow) * 0.25)) {
-            tempDropRating = "Excellent";
-        }
-    } else if (tempDrop > expectedTempDropHigh) {
-        tempDropRating = "cooler than expected";
-        possibleCause = "If the A/C outside temperature is lowered at the vents more than 40°, it typically indicates that the air conditioning system is over-performing. <br>While this might seem beneficial, it can actually point to potential issues within the system:<br><strong>Overcharging:</strong> The system may have too much refrigerant, which can lead to excessively cold evaporator temperatures. This can cause the evaporator to freeze, leading to reduced airflow and potential compressor damage due to liquid refrigerant returning to the compressor.<br><strong>Restricted Airflow:</strong> There could be a restriction in the airflow through the condenser or evaporator. This could be due to dirty filters, blocked vents, or issues with the blower motor.<br><strong>Faulty Thermostatic Expansion Valve (TXV):</strong> The TXV may be malfunctioning, allowing too much refrigerant to flow into the evaporator, causing it to get colder than it should.<br><strong>Malfunctioning Temperature Sensors:</strong> The sensors responsible for regulating the A/C system might be faulty, leading to incorrect temperature regulation.<br><br><strong>It is essential to diagnose and address these potential issues to prevent long-term damage to the A/C system and ensure optimal performance and efficiency.</strong>";
-    } else {
-        tempDropRating = "warmer than expected";
-        possibleCause = "If the A/C outside temperature is lowered at the vents less than 30°, it typically indicates that the air conditioning system is underperforming. <br>This can be due to several potential issues:<br><strong>Low Refrigerant Level:</strong> Insufficient refrigerant can prevent the system from effectively cooling the air, leading to a reduced temperature drop.<br><strong>Leaking Refrigerant:</strong> A leak in the system can cause a gradual loss of refrigerant, reducing the system's cooling efficiency.<br><strong>Compressor Issues:</strong> The compressor may not be functioning correctly, which can affect the system's ability to circulate refrigerant and cool the air.<br><strong>Condenser Problems:</strong> The condenser may be dirty or blocked, reducing its ability to dissipate heat and thus lowering the overall cooling capacity of the system.<br><strong>Evaporator Issues:</strong> The evaporator coil may be dirty or frosted, which can impair its ability to absorb heat from the cabin air.<br><strong>Airflow Restrictions:</strong> Blockages in the airflow, such as clogged cabin air filters or obstructed vents, can reduce the effectiveness of the cooling process.<br><strong>Faulty Expansion Valve:</strong> A malfunctioning expansion valve can result in incorrect refrigerant flow, impacting the cooling performance.<br><strong>High Ambient Temperature and Humidity:</strong> Extremely high outside temperatures and humidity levels can also strain the A/C system, reducing its ability to achieve a significant temperature drop.<br><br><strong>These issues should be diagnosed and repaired to ensure the A/C system operates efficiently and effectively.</strong>";
-    }
+            if (ambientTemp > 90) {
+                if (relativeHumidity > 60) {
+                    expectedTempDropLow = 25;
+                    expectedTempDropHigh = 35;
+                } else if (relativeHumidity > 30) {
+                    expectedTempDropLow = 30;
+                    expectedTempDropHigh = 40;
+                } else {
+                    expectedTempDropLow = 35;
+                    expectedTempDropHigh = 45;
+                }
+            } else if (ambientTemp > 60) {
+                if (relativeHumidity > 50) {
+                    expectedTempDropLow = 20;
+                    expectedTempDropHigh = 30;
+                } else if (relativeHumidity > 30) {
+                    expectedTempDropLow = 25;
+                    expectedTempDropHigh = 35;
+                } else {
+                    expectedTempDropLow = 30;
+                    expectedTempDropHigh = 40;
+                }
+            } else {
+                expectedTempDropLow = 10;
+                expectedTempDropHigh = 20;
+            }
 
-    document.getElementById("tempDropRating").innerText = ` (${tempDropRating})`;
+            let tempDropRating = "";
+            if (tempDrop >= expectedTempDropLow && tempDrop <= expectedTempDropHigh) {
+                tempDropRating = "cooling good";
+                if (tempDrop >= (expectedTempDropHigh - (expectedTempDropHigh - expectedTempDropLow) * 0.25)) {
+                    tempDropRating = "Excellent";
+                }
+            } else if (tempDrop > expectedTempDropHigh) {
+                tempDropRating = "cooler than expected";
+                possibleCause = "If the A/C outside temperature is lowered at the vents more than 40°, it typically indicates that the air conditioning system is over-performing. <br>While this might seem beneficial, it can actually point to potential issues within the system:<br><strong>Overcharging:</strong> The system may have too much refrigerant, which can lead to excessively cold evaporator temperatures. This can cause the evaporator to freeze, leading to reduced airflow and potential compressor damage due to liquid refrigerant returning to the compressor.<br><strong>Restricted Airflow:</strong> There could be a restriction in the airflow through the condenser or evaporator. This could be due to dirty filters, blocked vents, or issues with the blower motor.<br><strong>Faulty Thermostatic Expansion Valve (TXV):</strong> The TXV may be malfunctioning, allowing too much refrigerant to flow into the evaporator, causing it to get colder than it should.<br><strong>Malfunctioning Temperature Sensors:</strong> The sensors responsible for regulating the A/C system might be faulty, leading to incorrect temperature regulation.<br><br><strong>It is essential to diagnose and address these potential issues to prevent long-term damage to the A/C system and ensure optimal performance and efficiency.</strong>";
+            } else {
+                tempDropRating = "warmer than expected";
+                possibleCause = "If the A/C outside temperature is lowered at the vents less than 30°, it typically indicates that the air conditioning system is underperforming. <br>This can be due to several potential issues:<br><strong>Low Refrigerant Level:</strong> Insufficient refrigerant can prevent the system from effectively cooling the air, leading to a reduced temperature drop.<br><strong>Leaking Refrigerant:</strong> A leak in the system can cause a gradual loss of refrigerant, reducing the system's cooling efficiency.<br><strong>Compressor Issues:</strong> The compressor may not be functioning correctly, which can affect the system's ability to circulate refrigerant and cool the air.<br><strong>Condenser Problems:</strong> The condenser may be dirty or blocked, reducing its ability to dissipate heat and thus lowering the overall cooling capacity of the system.<br><strong>Evaporator Issues:</strong> The evaporator coil may be dirty or frosted, which can impair its ability to absorb heat from the cabin air.<br><strong>Airflow Restrictions:</strong> Blockages in the airflow, such as clogged cabin air filters or obstructed vents, can reduce the effectiveness of the cooling process.<br><strong>Faulty Expansion Valve:</strong> A malfunctioning expansion valve can result in incorrect refrigerant flow, impacting the cooling performance.<br><strong>High Ambient Temperature and Humidity:</strong> Extremely high outside temperatures and humidity levels can also strain the A/C system, reducing its ability to achieve a significant temperature drop.<br><br><strong>These issues should be diagnosed and repaired to ensure the A/C system operates efficiently and effectively.</strong>";
+            }
 
-    // Update possible causes
-    updatePossibleCauses(possibleCause);
+            document.getElementById("tempDropRating").innerText = ` (${tempDropRating})`;
 
-    calculateACRating();
-    updatePerformanceSummary();
-}
-
-function updatePerformanceSummary() {
-    const zipCode = document.getElementById("zipCode").value;
-    const vehicleType = document.getElementById("vehicleType").value;
-    const volume = document.getElementById("volume").value;
-    const ambientTemp = document.getElementById("ambientTemp").value;
-    const relativeHumidity = document.getElementById("relativeHumidity").value;
-    const feelsLikeTemp = document.getElementById("feelsLikeTemp").value;
-    const centerVentTemp = document.getElementById("centerVentTemp").value;
-    const centerReading = document.getElementById("centerReading").value;
-    const leftReading = document.getElementById("leftReading").value;
-    const rightReading = document.getElementById("rightReading").value;
-    const lowSidePsi = document.getElementById("lowSidePsi").value;
-    const lowSideTemp = document.getElementById("lowSideTemp").innerText;
-    const highSidePsi = document.getElementById("highSidePsi").value;
-    const highSideTemp = document.getElementById("highSideTemp").innerText;
-    const suctionLineTemp = document.getElementById("suctionLineTemp").value;
-    const tempDifference = document.getElementById("tempDifference").innerText;
-    const chargeCondition = document.getElementById("chargeCondition").innerText;
-    const condenserOutletTemp = document.getElementById("condenserOutletTemp").value;
-    const subcooling = document.getElementById("subcooling").innerText;
-    const subcoolingCondition = document.getElementById("subcoolingCondition").innerText;
-    const lowCFM = document.getElementById("lowCFM").value;
-    const highCFM = document.getElementById("highCFM").value;
-    const totalVentFlow = document.getElementById("totalVentFlow").innerText;
-    const avgVentFlow = document.getElementById("avgVentFlow").innerText;
-    const ach = document.getElementById("ach").innerText;
-    const tempDrop = document.getElementById("tempDrop").innerText;
-    const tempDropRating = document.getElementById("tempDropRating").innerText;
-    const coolingTime = document.getElementById("coolingTime").innerText;
-    const firstName = document.getElementById("firstName").value || "customer";
-    const lastName = document.getElementById("lastName").value || "";
-    const vehicleMake = document.getElementById("vehicleMake").value || "car";
-    const vehicleYear = document.getElementById("vehicleYear").value || "";
-    const acRating = document.getElementById("acRating").innerText;
-    const date = new Date().toLocaleDateString();
-
-    let customerFriendlyFeedback = `<h2><strong>${vehicleYear} ${vehicleMake} A/C Performance Summary Prepared for ${firstName} ${lastName} on ${date}</strong></h2>`;
-    customerFriendlyFeedback += `<p>The A/C Performance Report empowers our certified technicians to accurately evaluate your vehicle's air conditioning system under the current weather conditions for zip code ${zipCode}. While testing the outside air temperature was ${ambientTemp}°F with a relative humidity of ${relativeHumidity}% and a "Feels Like" temperature of ${feelsLikeTemp}°F. <br><br><strong>Here's how your A/C system performed during the test:</strong></p>`;
-    
-    if (chargeCondition.includes("Overcharged")) {
-        customerFriendlyFeedback += `<p>The evaporator appears to be overcharged, which may cause liquid refrigerant to enter the compressor and lead to mechanical damage. We recommend reducing the refrigerant level first and inspecting the system for airflow restrictions or a faulty expansion valve.</p>`;
-    } else if (chargeCondition.includes("Undercharged")) {
-        customerFriendlyFeedback += `<p>The evaporator seems undercharged, which may cause evaporator icing and potential mechanical damage. We recommend adding dye and recharging the refrigerant to the correct level, then inspecting the system for leaks before testing for a faulty expansion valve or for a possible blockage in the system.</p>`;
-    }
-    
-    if (subcoolingCondition.includes("Undercharged")) {
-        customerFriendlyFeedback += `<p>Your A/C condenser is slightly undercharged, which may lead to insufficient compressor lubrication and potential damage due to overheating.</p>`;
-    } else if (subcoolingCondition.includes("Overcharged")) {
-        customerFriendlyFeedback += `<p>Your A/C system appears slightly overcharged, which may reduce system efficiency and potentially damage the compressor.</p>`;
-    }
-
-    if (subcoolingCondition === "Normal" && chargeCondition === "Normal") {
-        customerFriendlyFeedback += `<p>Your A/C system is working efficiently and balanced, with an AC Rating of ${acRating}. Remember to have your cabin air filter checked and replaced regularly to maintain optimal performance.</p>`;
-    } else if (subcoolingCondition === "Normal") {
-        customerFriendlyFeedback += `<p>Your evaporator performance is slightly ${chargeCondition}, while the condenser is performing normally with an AC Rating of ${acRating}.</p>`;
-    } else if (chargeCondition === "Normal") {
-        customerFriendlyFeedback += `<p>Your evaporator performance is normal, while the condenser is slightly ${subcoolingCondition}, with an AC Rating of ${acRating}.</p>`;
-    } else {
-        customerFriendlyFeedback += `<p>Your A/C system performance between the evaporator and condenser is balanced, with an AC Rating of ${acRating}. Our certified A/C specialists are ready to further diagnose any concerns you may have.</p>`;
-    }
-
-    customerFriendlyFeedback += `<p>From a driver's perspective, you may notice the following:</p>`;
-    customerFriendlyFeedback += `<ul>`;
-    customerFriendlyFeedback += `<li>The air coming from your vents is ${centerVentTemp}°F, providing a temperature drop of ${tempDrop}°, which is considered ${tempDropRating}.</li>`;
-    customerFriendlyFeedback += `<li>The airflow from your vents is ${totalVentFlow} cubic feet per minute, refreshing your cabin air at a rate of ${ach} times per hour.</li>`;
-    customerFriendlyFeedback += `<li>It is estimated to take ${coolingTime} to cool your cabin to a comfortable temperature of 65°F.</li>`;
-    customerFriendlyFeedback += `</ul>`;
-
-    if (tempDropRating.includes("cooler than expected")) {
-        customerFriendlyFeedback += `<p>${possibleCause}</p>`;
-    } else if (tempDropRating.includes("warmer than expected")) {
-        customerFriendlyFeedback += `<p>${possibleCause}</p>`;
-    }
-
-    customerFriendlyFeedback += `<p>Overall, your A/C system's performance is rated at ${acRating}%. If you have any concerns or would like a more detailed diagnosis, our certified A/C specialists are here to help.</p>`;
-
-    const performanceSummaryDiv = document.getElementById("performanceSummary");
-    performanceSummaryDiv.innerHTML = customerFriendlyFeedback;
             // Update possible causes
             updatePossibleCauses(possibleCause);
 
@@ -637,19 +556,123 @@ function updatePerformanceSummary() {
             updatePerformanceSummary();
         }
 
+        function updatePerformanceSummary() {
+            const zipCode = document.getElementById("zipCode").value;
+            const vehicleType = document.getElementById("vehicleType").value;
+            const volume = document.getElementById("volume").value;
+            const ambientTemp = document.getElementById("ambientTemp").value;
+            const relativeHumidity = document.getElementById("relativeHumidity").value;
+            const feelsLikeTemp = document.getElementById("feelsLikeTemp").value;
+            const centerVentTemp = document.getElementById("centerVentTemp").value;
+            const centerReading = document.getElementById("centerReading").value;
+            const leftReading = document.getElementById("leftReading").value;
+            const rightReading = document.getElementById("rightReading").value;
+            const lowSidePsi = document.getElementById("lowSidePsi").value;
+            const lowSideTemp = document.getElementById("lowSideTemp").innerText;
+            const highSidePsi = document.getElementById("highSidePsi").value;
+            const highSideTemp = document.getElementById("highSideTemp").innerText;
+            const suctionLineTemp = document.getElementById("suctionLineTemp").value;
+            const tempDifference = document.getElementById("tempDifference").innerText;
+            const chargeCondition = document.getElementById("chargeCondition").innerText;
+            const condenserOutletTemp = document.getElementById("condenserOutletTemp").value;
+            const subcooling = document.getElementById("subcooling").innerText;
+            const subcoolingCondition = document.getElementById("subcoolingCondition").innerText;
+            const lowCFM = document.getElementById("lowCFM").value;
+            const highCFM = document.getElementById("highCFM").value;
+            const totalVentFlow = document.getElementById("totalVentFlow").innerText;
+            const avgVentFlow = document.getElementById("avgVentFlow").innerText;
+            const ach = document.getElementById("ach").innerText;
+            const tempDrop = document.getElementById("tempDrop").innerText;
+            const tempDropRating = document.getElementById("tempDropRating").innerText;
+            const coolingTime = document.getElementById("coolingTime").innerText;
+            const compressionRatio = document.getElementById("compressionRatio").innerText;
+            const compressionCondition = document.getElementById("compressionCondition").innerText;
+            const firstName = document.getElementById("firstName").value || "customer";
+            const lastName = document.getElementById("lastName").value || "";
+            const vehicleMake = document.getElementById("vehicleMake").value || "car";
+            const vehicleYear = document.getElementById("vehicleYear").value || "";
+            const acRating = document.getElementById("acRating").innerText;
+            const date = new Date().toLocaleDateString();
+            
+            let tempDropPossibleCause = "";
+            if (tempDropRating.includes("warmer than expected")) {
+                tempDropPossibleCause = "If the A/C outside temperature drop at the vents is less than a 30° drop, it typically indicates that the air conditioning system is underperforming. This can be due to several potential issues:<br>Low Refrigerant Level: Insufficient refrigerant can prevent the system from effectively cooling the air, leading to a reduced temperature drop.<br>Leaking Refrigerant: A leak in the system can cause a gradual loss of refrigerant, reducing the system's cooling efficiency.<br>Compressor Issues: The compressor may not be functioning correctly, which can affect the system's ability to circulate refrigerant and cool the air.<br>Condenser Problems: The condenser may be dirty or blocked, reducing its ability to dissipate heat and thus lowering the overall cooling capacity of the system.<br>Evaporator Issues: The evaporator coil may be dirty or frosted, which can impair its ability to absorb heat from the cabin air.<br>Airflow Restrictions: Blockages in the airflow, such as clogged cabin air filters or obstructed vents, can reduce the effectiveness of the cooling process.<br>Faulty Expansion Valve: A malfunctioning expansion valve can result in incorrect refrigerant flow, impacting the cooling performance.<br>High Ambient Temperature and Humidity: Extremely high outside temperatures and humidity levels can also strain the A/C system, reducing its ability to achieve a significant temperature drop.<br><br>These issues should be diagnosed and repaired to ensure the A/C system operates efficiently and effectively.";
+            } else if (tempDropRating.includes("cooler than expected")) {
+                tempDropPossibleCause = "If the A/C outside temperature drop at the vents is greater than 40°F, it typically indicates that the air conditioning system is over-performing. While this might seem beneficial, it can actually point to potential issues within the system:<br>Overcharging: The system may have too much refrigerant, which can lead to excessively cold evaporator temperatures. This can cause the evaporator to freeze, leading to reduced airflow and potential compressor damage due to liquid refrigerant returning to the compressor.<br>Restricted Airflow: There could be a restriction in the airflow through the condenser or evaporator. This could be due to dirty filters, blocked vents, or issues with the blower motor.<br>Faulty Thermostatic Expansion Valve (TXV): The TXV may be malfunctioning, allowing too much refrigerant to flow into the evaporator, causing it to get colder than it should.<br>Malfunctioning Temperature Sensors: The sensors responsible for regulating the A/C system might be faulty, leading to incorrect temperature regulation.<br><br>It is essential to diagnose and address these potential issues to prevent long-term damage to the A/C system and ensure optimal performance and efficiency.";
+            }
+
+            let customerFriendlyFeedback = `<h2><strong>${vehicleYear} ${vehicleMake} A/C Performance Summary Prepared for ${firstName} ${lastName} on ${date}</strong></h2>`;
+            customerFriendlyFeedback += `<p>The A/C Performance Report empowers our certified technicians to accurately evaluate your vehicle's air conditioning system under the current weather conditions for zip code ${zipCode}. While testing the outside air temperature was ${ambientTemp}°F with a relative humidity of ${relativeHumidity}% and a "Feels Like" temperature of ${feelsLikeTemp}°F. <br><br><strong>Here's how your A/C system performed during the test:</strong></p>`;
+            
+            customerFriendlyFeedback += `<p><strong>Data Points:</strong></p>`;
+            customerFriendlyFeedback += `<ul>`;
+            customerFriendlyFeedback += `<li>Low-side Gauge Reading: ${lowSidePsi} psi | ${lowSideTemp}°F</li>`;
+            customerFriendlyFeedback += `<li>High-side Gauge Reading: ${highSidePsi} psi | ${highSideTemp}°F</li>`;
+            customerFriendlyFeedback += `<li>Total Vent Air-Flow: ${totalVentFlow} cfm</li>`;
+            customerFriendlyFeedback += `<li>Average Flow/Vent: ${avgVentFlow} cfm</li>`;
+            customerFriendlyFeedback += `<li>Cabin Air Changes/hr: ${ach}</li>`;
+            customerFriendlyFeedback += `<li>Temperature Drop at vent: ${tempDrop}° ${tempDropRating}</li>`;
+            customerFriendlyFeedback += `<li>Estimated Cooling Time: ${coolingTime}</li>`;
+            customerFriendlyFeedback += `<li>AC Rating: ${acRating}</li>`;
+            customerFriendlyFeedback += `<li>Compression Ratio: ${compressionRatio} (${compressionCondition})</li>`;
+            customerFriendlyFeedback += `</ul>`;
+
+            if (chargeCondition.includes("Overcharged")) {
+                customerFriendlyFeedback += `<p>The evaporator appears to be overcharged, which may cause liquid refrigerant to enter the compressor and lead to mechanical damage. We recommend reducing the refrigerant level first and inspecting the system for airflow restrictions or a faulty expansion valve.</p>`;
+            } else if (chargeCondition.includes("Undercharged")) {
+                customerFriendlyFeedback += `<p>The evaporator seems undercharged, which may cause evaporator icing and potential mechanical damage. We recommend adding dye and recharging the refrigerant to the correct level, then inspecting the system for leaks before testing for a faulty expansion valve or for a possible blockage in the system.</p>`;
+            }
+            
+            if (subcoolingCondition.includes("Undercharged")) {
+                customerFriendlyFeedback += `<p>Your A/C condensor is slightly undercharged, which may lead to insufficient compressor lubrication and potential damage due to overheating.</p>`;
+            } else if (subcoolingCondition.includes("Overcharged")) {
+                customerFriendlyFeedback += `<p>Your A/C system appears slightly overcharged, which may reduce system efficiency and potentially damage the compressor.</p>`;
+            }
+
+            if (subcoolingCondition === "Normal" && chargeCondition === "Normal") {
+                customerFriendlyFeedback += `<p>Your A/C system is working efficiently and balanced, with an AC Rating of ${acRating}. Remember to have your cabin air filter checked regularly to maintain optimal performance.</p>`;
+            } else if (subcoolingCondition === "Normal") {
+                customerFriendlyFeedback += `<p>Your evaporator performance is slightly ${chargeCondition}, while the condenser is performing normally with an AC Rating of ${acRating}.</p>`;
+            } else if (chargeCondition === "Normal") {
+                customerFriendlyFeedback += `<p>Your evaporator performance is normal, while the condenser is slightly ${subcoolingCondition}, with an AC Rating of ${acRating}.</p>`;
+            } else {
+                customerFriendlyFeedback += `<p>Your A/C system performance between the evaporator and condenser is balanced, with an AC Rating of ${acRating}. Our certified A/C specialists are ready to further diagnose any concerns you may have.</p>`;
+            }
+
+            customerFriendlyFeedback += `<p><strong>From a driver's perspective, you may notice the following:</strong></p>`;
+            customerFriendlyFeedback += `<ul>`;
+            customerFriendlyFeedback += `<li>The air coming from your vents is ${centerVentTemp}°F, providing a temperature drop of ${tempDrop}°, which is considered ${tempDropRating}.</li>`;
+            customerFriendlyFeedback += `<li>The airflow from your vents is ${totalVentFlow} cubic feet per minute, refreshing your cabin air at a rate of ${ach} times per hour.</li>`;
+            customerFriendlyFeedback += `<li>It is estimated to take ${coolingTime} to cool your cabin to a comfortable temperature of 65°F.</li>`;
+            customerFriendlyFeedback += `</ul>`;
+            customerFriendlyFeedback += `<p>Overall, your A/C system's performance is rated at ${acRating}%. If you have any concerns or would like a more detailed diagnosis, our certified A/C specialists are here to help.</p>`;
+
+            if (tempDropPossibleCause) {
+                customerFriendlyFeedback += `<p><strong>Possible Causes for Temperature Drop being ${tempDropRating}:</strong></p>`;
+                customerFriendlyFeedback += `<p>${tempDropPossibleCause}</p>`;
+            }
+
+            const performanceSummaryDiv = document.getElementById("performanceSummary");
+            performanceSummaryDiv.innerHTML = customerFriendlyFeedback;
+        }
+
+
         function getSaturatedTemp(psi) {
             const ptTableR134a = [
-                { temp: -49, psi: -18.4 },{ temp: -48, psi: -18 },{ temp: -47, psi: -17.6 },{ temp: -46, psi: -17.3 },
-                { temp: -45, psi: -16.9 },{ temp: -44, psi: -16.5 },{ temp: -43, psi: -16.1 },{ temp: -42, psi: -15.7 },
-                { temp: -41, psi: -15.2 },{ temp: -40, psi: -14.8 },{ temp: -39, psi: -14.4 },{ temp: -38, psi: -13.9 },
-                { temp: -37, psi: -13.4 },{ temp: -36, psi: -13 },{ temp: -35, psi: -12.5 },{ temp: -34, psi: -12 },
-                { temp: -33, psi: -11.4 },{ temp: -32, psi: -10.9 },{ temp: -31, psi: -10.4 },{ temp: -30, psi: -9.8 },
-                { temp: -29, psi: -9.3 },{ temp: -28, psi: -8.7 },{ temp: -27, psi: -8.1 },{ temp: -26, psi: -7.5 },
-                { temp: -25, psi: -6.9 },{ temp: -24, psi: -6.3 },{ temp: -23, psi: -5.7 },{ temp: -22, psi: -5 },
-                { temp: -21, psi: -4.3 },{ temp: -20, psi: -3.7 },{ temp: -19, psi: -3 },{ temp: -18, psi: -2.3 },
-                { temp: -17, psi: -1.5 },{ temp: -16, psi: 0.8 },{ temp: -15, psi: 0.1 },{ temp: -14, psi: 0.4 },
-                { temp: -13, psi: 0.7 },{ temp: -12, psi: 1.1 },{ temp: -11, psi: 1.5 },{ temp: -10, psi: 1.9 },
-                { temp: -9, psi: 2.4 },{ temp: -8, psi: 2.8 },{ temp: -7, psi: 3.2 },
+                { temp: -49, psi: -18.4 },{ temp: -48, psi: -18 },{ temp: -47, psi: -17.6 },
+                { temp: -46, psi: -17.3 },{ temp: -45, psi: -16.9 },{ temp: -44, psi: -16.5 },
+                { temp: -43, psi: -16.1 },{ temp: -42, psi: -15.7 },{ temp: -41, psi: -15.2 },
+                { temp: -40, psi: -14.8 },{ temp: -39, psi: -14.4 },{ temp: -38, psi: -13.9 },
+                { temp: -37, psi: -13.4 },{ temp: -36, psi: -13 },{ temp: -35, psi: -12.5 },
+                { temp: -34, psi: -12 },{ temp: -33, psi: -11.4 },{ temp: -32, psi: -10.9 },
+                { temp: -31, psi: -10.4 },{ temp: -30, psi: -9.8 },{ temp: -29, psi: -9.3 },
+                { temp: -28, psi: -8.7 },{ temp: -27, psi: -8.1 },{ temp: -26, psi: -7.5 },
+                { temp: -25, psi: -6.9 },{ temp: -24, psi: -6.3 },{ temp: -23, psi: -5.7 },
+                { temp: -22, psi: -5 },{ temp: -21, psi: -4.3 },{ temp: -20, psi: -3.7 },
+                { temp: -19, psi: -3 },{ temp: -18, psi: -2.3 },{ temp: -17, psi: -1.5 },
+                { temp: -16, psi: 0.8 },{ temp: -15, psi: 0.1 },{ temp: -14, psi: 0.4 },
+                { temp: -13, psi: 0.7 },{ temp: -12, psi: 1.1 },{ temp: -11, psi: 1.5 },
+                { temp: -10, psi: 1.9 },{ temp: -9, psi: 2.4 },{ temp: -8, psi: 2.8 },{ temp: -7, psi: 3.2 },
                 { temp: -6, psi: 3.6 },{ temp: -5, psi: 4.1 },{ temp: -4, psi: 4.6 },{ temp: -3, psi: 5 },
                 { temp: -2, psi: 5.5 },{ temp: -1, psi: 6 },{ temp: 0, psi: 6.5 },{ temp: 1, psi: 7 },
                 { temp: 2, psi: 7.5 },{ temp: 3, psi: 8 },{ temp: 4, psi: 8.5 },{ temp: 5, psi: 9.1 },
@@ -690,14 +713,14 @@ function updatePerformanceSummary() {
                 { temp: 142, psi: 235.7 },{ temp: 143, psi: 239 },{ temp: 144, psi: 242.3 },{ temp: 145, psi: 245.7 },
                 { temp: 146, psi: 249.1 },{ temp: 147, psi: 252.5 },{ temp: 148, psi: 255.9 },{ temp: 149, psi: 259.4 },
                 { temp: 150, psi: 262.9 },{ temp: 151, psi: 266.4 },{ temp: 152, psi: 269.9 },{ temp: 153, psi: 273.5 },
-	            { temp: 154, psi: 277.1 },{ temp: 155, psi: 280.7 },{ temp: 156, psi: 284.4 },{ temp: 157, psi: 288.1 },
-        	    { temp: 158, psi: 291.8 },{ temp: 159, psi: 295.6 },{ temp: 160, psi: 299.3 },{ temp: 161, psi: 303.1 },
-        	    { temp: 162, psi: 306.9 },{ temp: 163, psi: 310.8 },{ temp: 164, psi: 314.7 },{ temp: 165, psi: 318.6 },
-        	    { temp: 166, psi: 322.5 },{ temp: 167, psi: 326.5 },{ temp: 168, psi: 330.5 },{ temp: 169, psi: 334.5 },
-        	    { temp: 170, psi: 338.6 },{ temp: 171, psi: 342.6 },{ temp: 172, psi: 346.7 },{ temp: 173, psi: 350.9 },
-        	    { temp: 174, psi: 355.0 },{ temp: 175, psi: 359.2 },{ temp: 176, psi: 363.4 },{ temp: 177, psi: 367.7 },
-        	    { temp: 178, psi: 372.0 },{ temp: 179, psi: 376.3 },{ temp: 180, psi: 380.6 },{ temp: 181, psi: 385.0 },
-    	        { temp: 182, psi: 389.4 },{ temp: 183, psi: 393.8 },{ temp: 184, psi: 398.3 },{ temp: 185, psi: 400.0 }
+                { temp: 154, psi: 277.1 },{ temp: 155, psi: 280.7 },{ temp: 156, psi: 284.4 },{ temp: 157, psi: 288.1 },
+                { temp: 158, psi: 291.8 },{ temp: 159, psi: 295.6 },{ temp: 160, psi: 299.3 },{ temp: 161, psi: 303.1 },
+                { temp: 162, psi: 306.9 },{ temp: 163, psi: 310.8 },{ temp: 164, psi: 314.7 },{ temp: 165, psi: 318.6 },
+                { temp: 166, psi: 322.5 },{ temp: 167, psi: 326.5 },{ temp: 168, psi: 330.5 },{ temp: 169, psi: 334.5 },
+                { temp: 170, psi: 338.6 },{ temp: 171, psi: 342.6 },{ temp: 172, psi: 346.7 },{ temp: 173, psi: 350.9 },
+                { temp: 174, psi: 355.0 },{ temp: 175, psi: 359.2 },{ temp: 176, psi: 363.4 },{ temp: 177, psi: 367.7 },
+                { temp: 178, psi: 372.0 },{ temp: 179, psi: 376.3 },{ temp: 180, psi: 380.6 },{ temp: 181, psi: 385.0 },
+                { temp: 182, psi: 389.4 },{ temp: 183, psi: 393.8 },{ temp: 184, psi: 398.3 },{ temp: 185, psi: 400.0 }
             ];
 
             let temp = 'N/A';
@@ -853,103 +876,32 @@ function updatePerformanceSummary() {
             updatePerformanceSummary();
         }
 
-function updatePerformanceSummary() {
-    const zipCode = document.getElementById("zipCode").value;
-    const vehicleType = document.getElementById("vehicleType").value;
-    const volume = document.getElementById("volume").value;
-    const ambientTemp = document.getElementById("ambientTemp").value;
-    const relativeHumidity = document.getElementById("relativeHumidity").value;
-    const feelsLikeTemp = document.getElementById("feelsLikeTemp").value;
-    const centerVentTemp = document.getElementById("centerVentTemp").value;
-    const centerReading = document.getElementById("centerReading").value;
-    const leftReading = document.getElementById("leftReading").value;
-    const rightReading = document.getElementById("rightReading").value;
-    const lowSidePsi = document.getElementById("lowSidePsi").value;
-    const lowSideTemp = document.getElementById("lowSideTemp").innerText;
-    const highSidePsi = document.getElementById("highSidePsi").value;
-    const highSideTemp = document.getElementById("highSideTemp").innerText;
-    const suctionLineTemp = document.getElementById("suctionLineTemp").value;
-    const tempDifference = document.getElementById("tempDifference").innerText;
-    const chargeCondition = document.getElementById("chargeCondition").innerText;
-    const condenserOutletTemp = document.getElementById("condenserOutletTemp").value;
-    const subcooling = document.getElementById("subcooling").innerText;
-    const subcoolingCondition = document.getElementById("subcoolingCondition").innerText;
-    const lowCFM = document.getElementById("lowCFM").value;
-    const highCFM = document.getElementById("highCFM").value;
-    const totalVentFlow = document.getElementById("totalVentFlow").innerText;
-    const avgVentFlow = document.getElementById("avgVentFlow").innerText;
-    const ach = document.getElementById("ach").innerText;
-    const tempDrop = document.getElementById("tempDrop").innerText;
-    const tempDropRating = document.getElementById("tempDropRating").innerText;
-    const coolingTime = document.getElementById("coolingTime").innerText;
-    const firstName = document.getElementById("firstName").value || "customer";
-    const lastName = document.getElementById("lastName").value || "";
-    const vehicleMake = document.getElementById("vehicleMake").value || "car";
-    const vehicleYear = document.getElementById("vehicleYear").value || "";
-    const acRating = document.getElementById("acRating").innerText;
-    const date = new Date().toLocaleDateString();
-    
-    let tempDropPossibleCause = "";
-    if (tempDropRating.includes("warmer than expected")) {
-        tempDropPossibleCause = "If the A/C outside temperature drop at the vents is less than a 30° drop, it typically indicates that the air conditioning system is underperforming. This can be due to several potential issues:<br>Low Refrigerant Level: Insufficient refrigerant can prevent the system from effectively cooling the air, leading to a reduced temperature drop.<br>Leaking Refrigerant: A leak in the system can cause a gradual loss of refrigerant, reducing the system's cooling efficiency.<br>Compressor Issues: The compressor may not be functioning correctly, which can affect the system's ability to circulate refrigerant and cool the air.<br>Condenser Problems: The condenser may be dirty or blocked, reducing its ability to dissipate heat and thus lowering the overall cooling capacity of the system.<br>Evaporator Issues: The evaporator coil may be dirty or frosted, which can impair its ability to absorb heat from the cabin air.<br>Airflow Restrictions: Blockages in the airflow, such as clogged cabin air filters or obstructed vents, can reduce the effectiveness of the cooling process.<br>Faulty Expansion Valve: A malfunctioning expansion valve can result in incorrect refrigerant flow, impacting the cooling performance.<br>High Ambient Temperature and Humidity: Extremely high outside temperatures and humidity levels can also strain the A/C system, reducing its ability to achieve a significant temperature drop.<br><br>These issues should be diagnosed and repaired to ensure the A/C system operates efficiently and effectively.";
-    } else if (tempDropRating.includes("cooler than expected")) {
-        tempDropPossibleCause = "If the A/C outside temperature drop at the vents is greater than 40°F, it typically indicates that the air conditioning system is over-performing. While this might seem beneficial, it can actually point to potential issues within the system:<br>Overcharging: The system may have too much refrigerant, which can lead to excessively cold evaporator temperatures. This can cause the evaporator to freeze, leading to reduced airflow and potential compressor damage due to liquid refrigerant returning to the compressor.<br>Restricted Airflow: There could be a restriction in the airflow through the condenser or evaporator. This could be due to dirty filters, blocked vents, or issues with the blower motor.<br>Faulty Thermostatic Expansion Valve (TXV): The TXV may be malfunctioning, allowing too much refrigerant to flow into the evaporator, causing it to get colder than it should.<br>Malfunctioning Temperature Sensors: The sensors responsible for regulating the A/C system might be faulty, leading to incorrect temperature regulation.<br><br>It is essential to diagnose and address these potential issues to prevent long-term damage to the A/C system and ensure optimal performance and efficiency.";
-    }
+        function calculateCompressionRatio() {
+            const lowSidePsi = parseFloat(document.getElementById("lowSidePsi").value) || 0;
+            const highSidePsi = parseFloat(document.getElementById("highSidePsi").value) || 0;
 
-    let customerFriendlyFeedback = `<h2><strong>${vehicleYear} ${vehicleMake} A/C Performance Summary Prepared for ${firstName} ${lastName} on ${date}</strong></h2>`;
-    customerFriendlyFeedback += `<p>The A/C Performance Report empowers our certified technicians to accurately evaluate your vehicle's air conditioning system under the current weather conditions for zip code ${zipCode}. While testing the outside air temperature was ${ambientTemp}°F with a relative humidity of ${relativeHumidity}% and a "Feels Like" temperature of ${feelsLikeTemp}°F. <br><br><strong>Here's how your A/C system performed during the test:</strong></p>`;
-    
-    customerFriendlyFeedback += `<p><strong>Data Points:</strong></p>`;
-    customerFriendlyFeedback += `<ul>`;
-    customerFriendlyFeedback += `<li>Low-side Gauge Reading: ${lowSidePsi} psi | ${lowSideTemp}°F</li>`;
-    customerFriendlyFeedback += `<li>High-side Gauge Reading: ${highSidePsi} psi | ${highSideTemp}°F</li>`;
-    customerFriendlyFeedback += `<li>Total Vent Air-Flow: ${totalVentFlow} cfm</li>`;
-    customerFriendlyFeedback += `<li>Average Flow/Vent: ${avgVentFlow} cfm</li>`;
-    customerFriendlyFeedback += `<li>Cabin Air Changes/hr: ${ach}</li>`;
-    customerFriendlyFeedback += `<li>Temperature Drop at vent: ${tempDrop}° ${tempDropRating}</li>`;
-    customerFriendlyFeedback += `<li>Estimated Cooling Time: ${coolingTime}</li>`;
-    customerFriendlyFeedback += `<li>AC Rating: ${acRating}</li>`;
-    customerFriendlyFeedback += `</ul>`;
+            if (lowSidePsi === 0) {
+                document.getElementById("compressionRatio").innerText = "N/A";
+                document.getElementById("compressionCondition").innerText = "";
+                return;
+            }
 
-    if (chargeCondition.includes("Overcharged")) {
-        customerFriendlyFeedback += `<p>The evaporator appears to be overcharged, which may cause liquid refrigerant to enter the compressor and lead to mechanical damage. We recommend reducing the refrigerant level first and inspecting the system for airflow restrictions or a faulty expansion valve.</p>`;
-    } else if (chargeCondition.includes("Undercharged")) {
-        customerFriendlyFeedback += `<p>The evaporator seems undercharged, which may cause evaporator icing and potential mechanical damage. We recommend adding dye and recharging the refrigerant to the correct level, then inspecting the system for leaks before testing for a faulty expansion valve or for a possible blockage in the system.</p>`;
-    }
-    
-    if (subcoolingCondition.includes("Undercharged")) {
-        customerFriendlyFeedback += `<p>Your A/C condensor is slightly undercharged, which may lead to insufficient compressor lubrication and potential damage due to overheating.</p>`;
-    } else if (subcoolingCondition.includes("Overcharged")) {
-        customerFriendlyFeedback += `<p>Your A/C system appears slightly overcharged, which may reduce system efficiency and potentially damage the compressor.</p>`;
-    }
+            const compressionRatio = highSidePsi / lowSidePsi;
+            document.getElementById("compressionRatio").innerText = compressionRatio.toFixed(2);
 
-    if (subcoolingCondition === "Normal" && chargeCondition === "Normal") {
-        customerFriendlyFeedback += `<p>Your A/C system is working efficiently and balanced, with an AC Rating of ${acRating}. Remember to have your cabin air filter checked regularly to maintain optimal performance.</p>`;
-    } else if (subcoolingCondition === "Normal") {
-        customerFriendlyFeedback += `<p>Your evaporator performance is slightly ${chargeCondition}, while the condenser is performing normally with an AC Rating of ${acRating}.</p>`;
-    } else if (chargeCondition === "Normal") {
-        customerFriendlyFeedback += `<p>Your evaporator performance is normal, while the condenser is slightly ${subcoolingCondition}, with an AC Rating of ${acRating}.</p>`;
-    } else {
-        customerFriendlyFeedback += `<p>Your A/C system performance between the evaporator and condenser is balanced, with an AC Rating of ${acRating}. Our certified A/C specialists are ready to further diagnose any concerns you may have.</p>`;
-    }
+            let compressionCondition = "Normal";
+            if (compressionRatio > 7) {
+                compressionCondition = "High";
+                updatePossibleCauses("Suspect Non-Condensable in system. Check suction and condenser outlet temps.");
+            } else if (compressionRatio < 5) {
+                compressionCondition = "Low";
+                updatePossibleCauses("Suspect low refrigerant or issues with compressor performance.");
+            } else {
+                updatePossibleCauses(""); // Clear any previous causes
+            }
 
-    customerFriendlyFeedback += `<p><strong>From a driver's perspective, you may notice the following:</strong></p>`;
-    customerFriendlyFeedback += `<ul>`;
-    customerFriendlyFeedback += `<li>The air coming from your vents is ${centerVentTemp}°F, providing a temperature drop of ${tempDrop}°, which is considered ${tempDropRating}.</li>`;
-    customerFriendlyFeedback += `<li>The airflow from your vents is ${totalVentFlow} cubic feet per minute, refreshing your cabin air at a rate of ${ach} times per hour.</li>`;
-    customerFriendlyFeedback += `<li>It is estimated to take ${coolingTime} to cool your cabin to a comfortable temperature of 65°F.</li>`;
-    customerFriendlyFeedback += `</ul>`;
-    customerFriendlyFeedback += `<p>Overall, your A/C system's performance is rated at ${acRating}%. If you have any concerns or would like a more detailed diagnosis, our certified A/C specialists are here to help.</p>`;
-
-    if (tempDropPossibleCause) {
-        customerFriendlyFeedback += `<p><strong>Possible Causes for Temperature Drop being ${tempDropRating}:</strong></p>`;
-        customerFriendlyFeedback += `<p>${tempDropPossibleCause}</p>`;
-    }
-
-    const performanceSummaryDiv = document.getElementById("performanceSummary");
-    performanceSummaryDiv.innerHTML = customerFriendlyFeedback;
-}
-
+            document.getElementById("compressionCondition").innerText = `(${compressionCondition})`;
+        }
 
         function getLocation() {
             if (navigator.geolocation) {
