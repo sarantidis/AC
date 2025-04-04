@@ -90,8 +90,34 @@ img {
 </head>
 <body>
 
+<!-- Branding Modal -->
+<div id="brandingModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#00000099; z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:white; padding:20px; border-radius:8px; max-width:400px; width:100%; text-align:center;">
+    <h3>Setup Your Shop Branding</h3>
+    <label>Shop Name:</label>
+    <input type="text" id="shopNameInput" />
+    <label>Upload Logo:</label>
+    <input type="file" id="shopLogoInput" accept="image/*" />
+    <label>Contact Info (Optional):</label>
+    <textarea id="shopContactInput" rows="2" placeholder="Phone, email, or address..."></textarea>
+    <br>
+    
+<button onclick="saveBranding()">Save Branding</button>
+
+  </div>
+</div>
+
+<!-- Branding Preview in Report -->
+<div id="brandingHeader" style="margin-bottom: 20px; padding: 10px; background: white; border: 1px solid #ccc; border-radius: 5px;"></div>
+<button onclick="openBrandingModal()" style="float:right; margin-bottom: 10px;">Change Branding</button>
+
+<!-- END Branding Modal -->
+<br>
 <h2>🔧 A/C System Triage Report </h2>
 
+<div class="description">
+            This report establishes a baseline for evaluating A/C system performance. It supports accurate repair decisions and post-repair validation. For best results, test with MAX cooling, lowest temp, blower on high, condenser fan active, and engine at 1,500 RPM.
+        </div>
 <div style="display: flex; gap: 20px;">
   <div style="flex: 1;">
     <label>RO#:</label>
@@ -178,6 +204,63 @@ img {
 
 <div class="result" id="output"></div>
 <script>
+
+function openBrandingModal() {
+  document.getElementById('brandingModal').style.display = 'flex';
+}
+
+function saveBranding() {
+  const shopName = document.getElementById('shopNameInput').value;
+  const contact = document.getElementById('shopContactInput').value;
+  const logoInput = document.getElementById('shopLogoInput');
+  
+  if (!shopName) {
+    alert("Please enter a shop name.");
+    return;
+  }
+
+  const brandingData = { shopName, contact };
+
+  const file = logoInput.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      brandingData.logo = e.target.result;
+      localStorage.setItem('shopBranding', JSON.stringify(brandingData));
+      document.getElementById('brandingModal').style.display = 'none';
+      renderBranding();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    const existing = JSON.parse(localStorage.getItem('shopBranding') || '{}');
+    brandingData.logo = existing.logo || '';
+    localStorage.setItem('shopBranding', JSON.stringify(brandingData));
+    document.getElementById('brandingModal').style.display = 'none';
+    renderBranding();
+  }
+}
+
+function renderBranding() {
+  const branding = JSON.parse(localStorage.getItem('shopBranding') || '{}');
+  const header = document.getElementById('brandingHeader');
+  if (!branding.shopName) {
+    openBrandingModal();
+    return;
+  }
+
+  header.innerHTML = `
+    ${branding.logo ? `<img src="${branding.logo}" alt="Logo" style="max-height:60px; display:block; margin: 0 auto 10px;" />` : ''}
+    <div style="font-size: 1.4em; font-weight: bold;">${branding.shopName}</div>
+    ${branding.contact ? `<div style="font-size: 0.9em; color: #555;">${branding.contact}</div>` : ''}
+  `;
+}
+
+// Auto-run on page load
+document.addEventListener('DOMContentLoaded', () => {
+  renderBranding();
+});
+
+
 document.addEventListener('DOMContentLoaded', function () {
   const ptTable = {
     r134a: [{ psi: 14.8, temp: -40 }, { psi: 12.5, temp: -35 }, { psi: 9.9, temp: -30 },
@@ -390,7 +473,12 @@ if (superheat > 18 && highPressure < 150 && evapPressure < 30) {
     `;
   }
 
-  document.getElementById('output').innerHTML = `
+  const brandingContent = document.getElementById('brandingHeader').innerHTML;
+
+document.getElementById('output').innerHTML = `
+  <div style="text-align:center; margin-bottom: 20px;">
+    ${brandingContent}
+  </div>
     <strong>Customer Report</strong><br>
     Name: ${customer || 'N/A'}<br>
     Vehicle: ${vehicle || 'N/A'}<br>
@@ -398,30 +486,30 @@ if (superheat > 18 && highPressure < 150 && evapPressure < 30) {
     Time: ${timestamp}<br><br>
 
     <div class="report-section">
-      <strong>Vent Temp:</strong><br>
+      <strong>🌬️ Vent Temp Performance:</strong><br>
       Ambient: ${ambient}°F<br>
       Vent: ${vent}°F → ΔT: ${ventDelta.toFixed(1)}°F<br>
     </div>
 
     <div class="report-section">
-      <strong>Evaporator Superheat:</strong><br>
+      <strong>❄️Evaporator Superheat Performance:</strong><br>
       PSI: ${evapPressure}, Sat: ${evapSat.toFixed(1)}°F<br>
       Outlet: ${evapOutlet}°F → Superheat: ${superheat.toFixed(1)}°F
     </div>
 
     <div class="report-section">
-      <strong>Condenser Performance:</strong><br>
+      <strong>🔥Condenser Performance Delta:</strong><br>
       PSI: ${highPressure}, Sat: ${condSat.toFixed(1)}°F<br>
       Outlet: ${condOutlet}°F → ΔT: ${condDelta.toFixed(1)}°F
     </div>
 
-    <div class="report-section">
-      <strong>Charge Estimation:</strong><br>
-      Observed: ${condSat.toFixed(1)}°F<br>
-      Target: ${expectedCondSat.toFixed(1)}°F<br>
-      ${fillBar}
-      ${ozOffset > 0.25 ? `⚠️ Undercharged by ~${ozOffset.toFixed(1)} oz (${pounds.toFixed(2)} lb / ${grams.toFixed(0)} g)` : ''}
-    </div>
+<div class="report-section">
+        <strong>🧪Refrigerant Charge Estimation:</strong><br>
+        Observed: ${condSat.toFixed(1)}°F<br>
+        Target: ${expectedCondSat.toFixed(1)}°F<br>
+        ${fillBar}
+        ${ozOffset > 0.25 ? `⚠️ Undercharged by ~${ozOffset.toFixed(1)} oz (${pounds.toFixed(2)} lb / ${grams.toFixed(0)} g)` : ''}
+      </div>
 
     <div class="report-section">
       <strong>Diagnosis:</strong><br>
@@ -429,6 +517,15 @@ if (superheat > 18 && highPressure < 150 && evapPressure < 30) {
     </div>
 
     ${confidenceBlock}
+<div class="report-section">
+  <strong>📊 Confidence Score Breakdown:</strong><br>
+  🌬️ Vent ΔT: ${ventDelta.toFixed(1)}°F – ${ventDelta >= 30 && ventDelta <= 40 ? '✅ Within expected range' : '❌ Outside expected range (30–40°F)'}<br>
+  ❄️ Superheat: ${superheat.toFixed(1)}°F – ${superheat >= 10 && superheat <= 15 ? '✅ Optimal' : '❌ Outside optimal range (10–15°F)'}<br>
+  🔥 Condenser ΔT: ${condDelta.toFixed(1)}°F – ${condDelta >= 25 ? '✅ Acceptable' : '❌ Low (Target: ≥25°F)'}<br>
+  🧪 Fill %: ${fillPercent}% – ${percentFill >= 0.98 ? '✅ Ideal' : '❌ Below ideal threshold'}<br>
+  🔍 Diagnosis: ${percentFill >= 0.98 && superheat >= 10 && superheat <= 15 && condDelta >= 25 ? '✅ Properly Charged' : '❌ Not confirmed “Properly Charged”'}
+</div>
+
     ${techNotes ? `<div class="report-section"><strong>Technician Notes:</strong><br>${techNotes.replace(/\n/g, '<br>')}</div>` : ''}
     ${photoSection}
   `;
@@ -481,7 +578,7 @@ function downloadPDF() {
 });
 </script>
 <footer style="text-align: center; margin-top: 40px; font-size: 0.85em; color: #666;">
-  © 2025 Peter Sarantidis - ASE Master Tech - Advanced SME
+  © 2025 Peter Sarantidis - Developer - ASE Master Tech - Advanced SME
 </footer>
 </body>
 
