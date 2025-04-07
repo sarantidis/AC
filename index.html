@@ -205,6 +205,17 @@ img {
 <div class="result" id="output"></div>
 <script>
 
+function getExpectedVentDelta(ambient) {
+  if (ambient <= 35) return { min: 1, max: 2 };
+  if (ambient <= 40) return { min: 5, max: 7 };
+  if (ambient <= 50) return { min: 10, max: 15 };
+  if (ambient <= 70) return { min: 15, max: 25 };
+  if (ambient <= 80) return { min: 20, max: 30 };
+  if (ambient <= 95) return { min: 25, max: 35 };
+  return { min: 30, max: 40 };
+}
+
+
 function openBrandingModal() {
   document.getElementById('brandingModal').style.display = 'flex';
 }
@@ -416,7 +427,10 @@ if (superheat > 18 && highPressure < 150 && evapPressure < 30) {
 
   // Confidence scoring
   let score = 0;
-  if (ventDelta >= 30 && ventDelta <= 40) score++;
+  const expectedVentRange = getExpectedVentDelta(ambient);
+  const ventInRange = ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max;
+  
+  if (ventInRange) score++;
   if (superheat >= 10 && superheat <= 15) score++;
   if (condDelta >= 25) score++;
   if (percentFill >= 0.98) score++;
@@ -519,7 +533,7 @@ document.getElementById('output').innerHTML = `
     ${confidenceBlock}
 <div class="report-section">
   <strong>📊 Confidence Score Breakdown:</strong><br>
-  🌬️ Vent ΔT: ${ventDelta.toFixed(1)}°F – ${ventDelta >= 30 && ventDelta <= 40 ? '✅ Within expected range' : '❌ Outside expected range (30–40°F)'}<br>
+  🌬️ Vent ΔT: ${ventDelta.toFixed(1)}°F – ${ventInRange ? '✅ Within expected range' : `❌ Expected ${expectedVentRange.min}–${expectedVentRange.max}°F` }<br>
   ❄️ Superheat: ${superheat.toFixed(1)}°F – ${superheat >= 10 && superheat <= 15 ? '✅ Optimal' : '❌ Outside optimal range (10–15°F)'}<br>
   🔥 Condenser ΔT: ${condDelta.toFixed(1)}°F – ${condDelta >= 25 ? '✅ Acceptable' : '❌ Low (Target: ≥25°F)'}<br>
   🧪 Fill %: ${fillPercent}% – ${percentFill >= 0.98 ? '✅ Ideal' : '❌ Below ideal threshold'}<br>
