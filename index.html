@@ -454,43 +454,34 @@ function runEvaluation() {
     chargeStatus = `<small style="color:#888;">⚠️ No factory charge value provided — weight offset not calculated.</small>`;
   }
 
-// Diagnosis Logic with Overcharge-Functional Handling
+ // Diagnosis Logic with Overcharge-Functional Handling
 let diagnosis = '';
-let techTip = '';
-
 if (superheat > 18 && highPressure < 150 && evapPressure < 30) {
   diagnosis = `⚠️ High superheat & low pressure → likely undercharged. Est. short: ${ozOffset.toFixed(1)} oz<br><span class="tech-only"><em>Diagnostic Tag: DTC-FILL-LOW-01</em></span>`;
-  techTip = `Start with refrigerant weight verification. Inspect for leaks using UV dye or electronic detector. Recharge and validate superheat.`;
 } else if (superheat > 18 && highPressure >= 150 && condDelta >= 25) {
   diagnosis = `⚠️ High superheat + normal condenser performance → metering device or flow issue.<br><span class="tech-only"><em>Diagnostic Tag: DTC-METER-01</em></span>`;
-  techTip = `Check TXV or orifice tube for blockage. Verify expansion with a temp drop across valve. Review subcooling.`;
 } else if (
   fillPercent > 125 &&
-  superheat >= 12 && superheat <= 16 &&
+  superheat >= 1 && superheat <= 16 &&
   condDelta >= 18 && condDelta < 25
 ) {
   diagnosis = `⚠️ System is overcharged but currently delivering acceptable cooling. Overfill may reduce long-term evaporator efficiency.<br><span class="tech-only"><em>Diagnostic Tag: DTC-OVERCHARGE-FUNCTIONAL</em></span>`;
-  techTip = `System is cooling but overfilled. Monitor for declining vent performance or oil saturation. Recovery and re-balance may be needed if customer returns.`;
 } else if (superheat < 5 && fillPercent > 125) {
   diagnosis = `⚠️ Low superheat & high fill → Possible overcharge with excessive oil ratio or poor evaporator heat exchange.<br><span class="tech-only"><em>Diagnostic Tag: DTC-OVERCHARGE-FUNCTIONAL</em></span>`;
-  techTip = `Evap performance may be oil-flooded. Recover and measure refrigerant/oil. Recharge to OE spec. Recheck superheat.`;
 } else if (superheat < 5 && evapPressure < 25) {
   diagnosis = `⚠️ Low superheat & low evap pressure → sensor error, restriction, or bypassing refrigerant internally.<br><span class="tech-only"><em>Diagnostic Tag: DTC-SENSOR-04</em></span>`;
-  techTip = `Compare evap temp, pressure, and outlet. Sanity check with known-good. Consider A/B sensor swap.`;
 } else if (percentFillRaw >= 0.98 && (superheat > 18 || condDelta < 20)) {
   diagnosis = `⚠️ Charge appears full, but poor performance → check airflow, condenser fan, internal restriction, or blend door.<br><span class="tech-only"><em>Diagnostic Tag: DTC-AIRFLOW-02</em></span>`;
-  techTip = `Verify condenser airflow, fan operation, blend door, and system duct integrity. Poor airflow = high superheat.`;
 } else if (
   percentFillRaw >= 0.98 &&
   superheat >= 10 && superheat <= 15 &&
   condDelta >= 25
 ) {
   diagnosis = `✅ System appears properly charged.<br><span class="tech-only"><em>Diagnostic Tag: DTC-CHARGE-OK</em></span>`;
-  techTip = `System balanced. Perform visual check of hoses, fans, drive, and temps to verify no intermittent fault.`;
 } else {
   diagnosis = `⚠️ System behavior unclear — further diagnostics recommended.<br><span class="tech-only"><em>Diagnostic Tag: DTC-UNCLEAR-99</em></span>`;
-  techTip = `Restart DSOP triage: validate charge, airflow, sensor data, and refrigerant integrity. Check for multiple faults.`;
 }
+
   // Technician Tip
   let techTip = '';
   if (diagnosis.includes('DTC-FILL-LOW-01')) {
