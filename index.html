@@ -581,7 +581,7 @@ function runEvaluation() {
   } else if (diagnosis.includes('CODE-CHARGE-OK')) {
     techTip = `System balanced. Perform visual check of hoses, fans, drive, and temps to verify no intermittent fault.`;
   } else if (diagnosis.includes('CODE-UNCLEAR-99')) {
-    techTip = `Restart DSOP triage: validate charge, airflow, sensor data, and refrigerant integrity. Check for multiple faults.`;
+    techTip = `Restart triage: validate charge, airflow, sensor data, and refrigerant integrity. Check for multiple faults.`;
   }
 
   // Confidence Score Logic
@@ -677,7 +677,7 @@ if (
     </div>
 
     <div class="report-section tech-only">
-      <strong>🧰 Technician Tip (OSPF-Based):</strong><br>
+      <strong>🧰 Suggested Test-Plan:</strong><br>
       ${techTip}
     </div>
 
