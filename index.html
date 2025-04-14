@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>❄️ AC_Triage Evaluation Pro v3.5</title>
+  <title>❄️ AC_Triage Pro v3.6</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -123,7 +123,7 @@ img {
 
 <!-- END Branding Modal -->
 <br>
-<h2>🔧 AC_Triage Evaluation Pro v3.5 </h2>
+<h2>🔧 AC_Triage Pro v3.6 </h2>
 
 <div class="description">
             This report establishes a baseline for evaluating A/C system performance. It supports accurate repair decisions and post-repair validation. Settings for best results: test with MAX cooling, lowest temp, blower on high, condenser fan active, and engine at 1,500 RPM.
@@ -483,6 +483,18 @@ function runEvaluation() {
   const grams = ozOffset * 28.3495;
   const pounds = ozOffset / 16;
 
+  // Calculate Compression Ratio
+  let compressionRatio = null;
+  if (evapPressure > 0) {
+     compressionRatio = highPressure / evapPressure;
+}
+
+// 🔺 Define Dynamic Threshold Based on Ambient Temperature
+ const highRatioThreshold =
+  ambient >= 100 ? 5.0 :
+  ambient >= 90  ? 4.5 :
+  4.0; // Default threshold
+
   const fillBar = `
     <div style="margin: 10px 0;">
       <div style="display: flex; justify-content: center;">
@@ -502,6 +514,30 @@ function runEvaluation() {
     </div>
   `;
 
+const compressionRatioSection = `
+  <div class="report-section">
+    <strong>📈 Compression Ratio Estimate:</strong><br>
+    Discharge: ${highPressure.toFixed(1)} psi / Suction: ${evapPressure.toFixed(1)} psi<br>
+    Ratio: ${
+      compressionRatio !== null
+        ? `${compressionRatio.toFixed(2)}:1<br>` +
+          (
+            compressionRatio > highRatioThreshold
+              ? `🔴 Above ${highRatioThreshold.toFixed(1)}:1 threshold – possible restriction or overcharge.` +
+                (fillPercent >= 95 && fillPercent <= 105
+                  ? `<br>⚠️ Check if system uses a VDC compressor. If so, verify solenoid control.` : '')
+              : compressionRatio < 2.5
+                ? `🟠 Below 2.5:1 – possible weak or under-commanded compressor.` +
+                  (fillPercent >= 95 && fillPercent <= 105
+                    ? `<br>⚠️ If VDC, test solenoid duty cycle or override control.` : '')
+                : `✅ Within expected range for current ambient conditions.`
+          )
+        : 'N/A – ⚠️ Unable to calculate'
+    }
+  </div>
+`;
+
+
   let chargeStatus = '';
   if (factoryOz > 0 && !isNaN(factoryOz)) {
     chargeStatus = Math.abs(ozOffset) > 0.25
@@ -513,78 +549,147 @@ function runEvaluation() {
     chargeStatus = `<small style="color:#888;">⚠️ No factory charge value provided — weight offset not calculated.</small>`;
   }
 
-  // Diagnosis Logic
-  let diagnosis = '';
+// Diagnosis Logic
+let diagnosis = '';
+
+if (
+  superheat > 25 &&
+  evapPressure < 30 &&
+  ventDelta < 5 &&
+  fillPercent >= 98 && fillPercent <= 105
+) {
+  diagnosis = `⚠️ Charge appears full based on pressure-temperature estimate, but high superheat, low suction pressure, and warm vent temps indicate an undercharged system (phase starvation).<br><span class="tech-only"><em>Diagnostic Tag: CODE-FILL-LOW-01</em></span>`;
+}
+
+if (!diagnosis) {
   if (superheat > 18 && highPressure < 150 && evapPressure < 30) {
     diagnosis = `⚠️ High superheat & low pressure → likely undercharged. Est. short: ${ozOffset.toFixed(1)} oz<br><span class="tech-only"><em>Diagnostic Tag: CODE-FILL-LOW-01</em></span>`;
+  
   } else if (superheat > 18 && highPressure >= 150 && condDelta >= 25) {
     diagnosis = `⚠️ High superheat + normal condenser performance → metering device or flow issue.<br><span class="tech-only"><em>Diagnostic Tag: CODE-METER-01</em></span>`;
+
   } else if (
     fillPercent > 125 &&
     superheat >= 1 && superheat <= 16 &&
     condDelta >= 18 && condDelta < 25
   ) {
     diagnosis = `⚠️ System is overcharged but currently delivering acceptable cooling. Overfill may reduce long-term evaporator efficiency.<br><span class="tech-only"><em>Diagnostic Tag: CODE-OVERCHARGE-FUNCTIONAL</em></span>`;
+
   } else if (superheat < 5 && fillPercent > 125) {
     diagnosis = `⚠️ Low superheat & high fill → Possible overcharge with excessive oil ratio or poor evaporator heat exchange.<br><span class="tech-only"><em>Diagnostic Tag: CODE-OVERCHARGE-FUNCTIONAL</em></span>`;
+
   } else if (
     fillPercent > 115 &&
     superheat < 7 &&
     condDelta < 25
   ) {
     diagnosis = `⚠️ Excessive charge + poor heat transfer → possible oil overcharge insulating evaporator or condenser surfaces.<br><span class="tech-only"><em>Diagnostic Tag: CODE-OIL-IMBALANCE-01</em></span>`;
+
   } else if (
     fillPercent > 102 && fillPercent <= 115 &&
     superheat >= 10 && superheat <= 15 &&
     condDelta >= 25
   ) {
     diagnosis = `⚠️ Slight overcharge with balanced performance – monitor long-term evap behavior. Consider recovery to OE spec.<br><span class="tech-only"><em>Diagnostic Tag: CODE-OVERCHARGE-MILD-02</em></span>`;
+
   } else if (
     condDelta > 40 &&
     superheat < 10
   ) {
     diagnosis = `⚠️ High condenser ΔT and low superheat → possible TXV restriction, refrigerant stacking, or overcooling from oil/refrigerant overcharge.<br><span class="tech-only"><em>Diagnostic Tag: CODE-COND-OVERDELTA-01</em></span>`;
+
+  } else if (
+    superheat < 8 &&
+    condDelta < 25 &&
+    fillPercent >= 90 && fillPercent <= 96 &&
+    highPressure < 130
+  ) {
+    diagnosis = `⚠️ Low ΔT, low SH, and borderline fill → suspect weak or underperforming compressor. If system uses a variable displacement compressor, verify control solenoid duty or command state before testing compression ratio.<br><span class="tech-only"><em>Diagnostic Tag: CODE-COMP-RATIO-04</em></span>`;
+
   } else if (superheat < 5 && evapPressure < 25) {
     diagnosis = `⚠️ Low superheat & low evap pressure → sensor error, restriction, or bypassing refrigerant internally.<br><span class="tech-only"><em>Diagnostic Tag: CODE-SENSOR-04</em></span>`;
-  } else if (percentFillRaw >= 0.98 && (superheat > 18 || condDelta < 20)) {
-    diagnosis = `⚠️ Charge appears full, but poor performance → check airflow, condenser fan, internal restriction, or blend door.<br><span class="tech-only"><em>Diagnostic Tag: CODE-AIRFLOW-02</em></span>`;
+
   } else if (
-    percentFillRaw >= 0.98 && percentFillRaw <= 1.02 &&
+    percentFillRaw >= 0.95 && (superheat > 18 || condDelta < 20)
+  ) {
+    diagnosis = `⚠️ Charge appears full, but poor performance → check airflow, condenser fan, internal restriction, or blend door.<br><span class="tech-only"><em>Diagnostic Tag: CODE-AIRFLOW-02</em></span>`;
+
+  } else if (
+    typeof compressionRatio === 'number' && compressionRatio > 4.5
+  ) {
+    diagnosis = `⚠️ High compression ratio (${compressionRatio.toFixed(1)}:1) within expected range for high ambient temp. However, elevated ratio may still indicate early restriction or TXV sensitivity. Monitor behavior if ambient cools.<br><span class="tech-only"><em>Diagnostic Tag: CODE-COMP-RATIO-HIGH-06</em></span>`;
+
+  } else if (
+    typeof compressionRatio === 'number' && compressionRatio < 2.5
+  ) {
+    diagnosis = `⚠️ Low compression ratio (${compressionRatio.toFixed(2)}:1) – possible weak compressor or under-command. If VDC, check solenoid control.<br><span class="tech-only"><em>Diagnostic Tag: CODE-COMP-RATIO-LOW-05</em></span>`;
+
+  } else if (
+    percentFillRaw >= 0.95 && percentFillRaw <= 1.05 &&
     superheat >= 10 && superheat <= 15 &&
     condDelta >= 25
   ) {
     diagnosis = `✅ System appears properly charged.<br><span class="tech-only"><em>Diagnostic Tag: CODE-CHARGE-OK</em></span>`;
+
   } else {
-    diagnosis = `⚠️ System behavior unclear — further diagnostics recommended.<br><span class="tech-only"><em>Diagnostic Tag: CODE-UNCLEAR-99</em></span>`;
+    diagnosis = `⚠️ System Behavior Unbalanced — further diagnostics recommended.<br><span class="tech-only"><em>Diagnostic Tag: CODE-RETEST-99</em></span>`;
   }
+}
 
-  const isProperlyCharged = diagnosis.includes('CODE-CHARGE-OK');
+  const isProperlyCharged =
+       percentFillRaw >= 0.95 && percentFillRaw <= 1.05 &&
+       superheat >= 10 && superheat <= 15 &&
+       condDelta >= 25 &&
+      !(diagnosis.includes('CODE-FILL-LOW-01') ||
+       (diagnosis.includes('CODE-OVERCHARGE-MILD-02') && percentFillRaw <= 1.05) ||
+       (diagnosis.includes('CODE-COMP-RATIO-HIGH-06') && ambient < 95));
 
-  // Tech Tip Logic
-  let techTip = '';
-  if (diagnosis.includes('CODE-FILL-LOW-01')) {
-    techTip = `Start with refrigerant weight verification. Inspect for leaks using UV dye or electronic detector. Recharge and validate superheat.`;
-  } else if (diagnosis.includes('CODE-METER-01')) {
-    techTip = `Check TXV or orifice tube for blockage. Verify expansion with a temp drop across valve. Review subcooling.`;
-  } else if (diagnosis.includes('CODE-OVERCHARGE-FUNCTIONAL')) {
-    techTip = `Evap performance may degrade over time from oil-flooding. Recover & weigh refrigerant. Recharge to OE spec and monitor superheat stability.`;
-  } else if (diagnosis.includes('CODE-OIL-IMBALANCE-01')) {
-    techTip = `Recover & weigh refrigerant and oil. Flush system, recharge with correct oil type and volume. Oil saturation can impair heat transfer.`;
-  } else if (diagnosis.includes('CODE-OVERCHARGE-MILD-02')) {
-    techTip = `Performance is stable, but refrigerant quantity exceeds OE spec. Recover, weigh, and recharge to ensure long-term efficiency.`;
-  } else if (diagnosis.includes('CODE-COND-OVERDELTA-01')) {
-    techTip = `High condenser ΔT (>40°F) may indicate restriction, refrigerant stacking, or overcooling from excessive charge or oil. Confirm fill %, TXV flow, and superheat.`;
-  } else if (diagnosis.includes('CODE-SENSOR-04')) {
-    techTip = `Compare evap temp, pressure, and outlet. Sanity check with known-good. Consider A/B sensor swap.`;
-  } else if (diagnosis.includes('CODE-AIRFLOW-02')) {
-    techTip = `Verify condenser airflow, fan operation, blend door, and system duct integrity. Poor airflow = high superheat.`;
-  } else if (diagnosis.includes('CODE-CHARGE-OK')) {
-    techTip = `System balanced. Perform visual check of hoses, fans, drive, and temps to verify no intermittent fault.`;
-  } else if (diagnosis.includes('CODE-UNCLEAR-99')) {
-    techTip = `Restart triage: validate charge, airflow, sensor data, and refrigerant integrity. Check for multiple faults.`;
-  }
 
-  // Confidence Score Logic
+// Technician Tip
+let techTip = '';
+
+if (diagnosis.includes('CODE-FILL-LOW-01')) {
+  techTip = `Start with refrigerant weight verification. Inspect for leaks using UV dye or electronic detector. Recharge and validate superheat.`;
+
+} else if (diagnosis.includes('CODE-METER-01')) {
+  techTip = `Check TXV or orifice tube for blockage. Verify expansion with temp drop across valve. Review subcooling and high-side pressure.`;
+
+} else if (diagnosis.includes('CODE-OVERCHARGE-FUNCTIONAL')) {
+  techTip = `System cooling is functional, but overfilled. Recover and weigh contents. Recharge to OE spec. Monitor long-term evaporator performance.`;
+
+} else if (diagnosis.includes('CODE-OIL-IMBALANCE-01')) {
+  techTip = `Recover & weigh refrigerant and oil. Flush system. Recharge with correct oil type and quantity. Excess oil reduces heat transfer.`;
+
+} else if (diagnosis.includes('CODE-OVERCHARGE-MILD-02')) {
+  techTip = `Performance stable, but refrigerant exceeds OE spec. Recommend recovering to specification to protect long-term component life.`;
+
+} else if (diagnosis.includes('CODE-COND-OVERDELTA-01')) {
+  techTip = `High condenser ΔT (>40°F) may indicate restriction or refrigerant stacking. Check subcooling, airflow, and TXV flow behavior.`;
+
+} else if (diagnosis.includes('CODE-COMP-RATIO-04')) {
+  techTip = `Suspect weak or low-efficiency compressor. For VDC, unplug or override solenoid. For fixed units, compare suction/discharge delta.`;
+
+} else if (diagnosis.includes('CODE-COMP-RATIO-LOW-05')) {
+  techTip = `Low ratio suggests compression loss. Inspect for suction line collapse, internal wear, or undercommanded stroke. Check control solenoid duty.`;
+
+} else if (diagnosis.includes('CODE-COMP-RATIO-HIGH-06')) {
+  techTip = `Compression ratio exceeds 4.5:1 – acceptable at or above 100°F ambient. Confirm fill % and inspect TXV or orifice if symptoms persist. Monitor subcooling and pressure trends as ambient temperatures drop.`;
+
+} else if (diagnosis.includes('CODE-SENSOR-04')) {
+  techTip = `Compare evap temp sensor vs pressure-derived saturation temp. Perform sensor A/B swap if available. Check for open/shorted readings.`;
+
+} else if (diagnosis.includes('CODE-AIRFLOW-02')) {
+  techTip = `Inspect condenser fans, airflow path, and blend doors. Blocked airflow or improper mixing can mimic low fill or poor cooling.`;
+
+} else if (diagnosis.includes('CODE-CHARGE-OK')) {
+  techTip = `System operating within expected parameters. Perform visual checks to confirm no intermittent or control-based concerns remain.`;
+
+} else if (diagnosis.includes('CODE-RETEST-99')) {
+  techTip = `Recheck triage: validate pressures, fill, airflow, and control command state. Review blend door behavior and condenser fan status.`;
+}
+
+
+  // Confidence Score
   const expectedVentRange = getExpectedVentDelta(ambient);
   let score = 0;
   if (ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max) score++;
@@ -593,15 +698,16 @@ function runEvaluation() {
   if (percentFillRaw >= 0.98 && percentFillRaw <= 1.02) score++;
   if (isProperlyCharged) score++;
 
+  if (diagnosis.includes('CODE-FILL-LOW-01') && ventDelta < 10 && superheat > 25) {
+    score = 0;
+  }
+
   let confidenceLabel = '';
   let confidenceEmoji = '';
-
-if (
-  superheat > 25 ||
-  condDelta < 10 ||
-  (condDelta > 40 && superheat < 10) ||  // only penalize over-ΔT if paired with low superheat
-  fillPercent > 125
-) {
+  if (
+    superheat > 25 || condDelta < 10 ||
+    (condDelta > 40 && superheat < 10) || fillPercent > 125
+  ) {
     score = 0;
     confidenceLabel = 'Critical Fault – Immediate Review';
     confidenceEmoji = '🚫';
@@ -618,6 +724,7 @@ if (
     confidenceLabel = 'Low – Further Testing Advised';
     confidenceEmoji = '❌';
   }
+
   const customer = document.getElementById('customer').value;
   const vehicle = document.getElementById('vehicle').value;
   const ro = document.getElementById('ro').value;
@@ -663,13 +770,16 @@ if (
       Outlet: ${condOutlet}°F → ΔT: ${condDelta.toFixed(1)}°F
     </div>
 
-    <div class="report-section">
-      <strong>🧪Refrigerant Charge Estimation:</strong><br>
-      Observed: ${condSat.toFixed(1)}°F<br>
-      Target: ${expectedCondSat.toFixed(1)}°F<br>
-      ${fillBar}
-      ${chargeStatus}
-    </div>
+    ${compressionRatioSection}
+
+<div class="report-section">
+  <strong>🧪 Refrigerant Charge Estimation:</strong><br>
+  Observed Condenser Saturation Temp: ${condSat.toFixed(1)}°F<br>
+  Target Condenser Saturation Temp: ${expectedCondSat.toFixed(1)}°F<br>
+  Factory Charge: ${factoryCharge} ${unit}<br>
+  ${fillBar}
+  ${chargeStatus}
+</div>
 
     <div class="report-section">
       <strong>Diagnosis:</strong><br>
@@ -686,15 +796,15 @@ if (
       Score: ${score}/5<br>
       <strong>${confidenceEmoji} ${confidenceLabel}</strong>
     </div>
+<div class="report-section">
+  <strong>📊 Confidence Score Breakdown:</strong><br>
+  🌬️ Vent ΔT: ${ventDelta.toFixed(1)}°F – ${ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max ? '✅ Within expected range' : `❌ Expected ${expectedVentRange.min}–${expectedVentRange.max}°F`}<br>
+  ❄️ Superheat: ${superheat.toFixed(1)}°F – ${superheat >= 10 && superheat <= 15 ? '✅ Optimal' : '❌ Outside optimal range (10–15°F)' }<br>
+  🔥 Condenser ΔT: ${condDelta.toFixed(1)}°F – ${condDelta >= 25 ? '✅ Acceptable' : '❌ Low (Target: ≥25°F)' }<br>
+  🧪 Fill %: ${fillPercent}% – ${percentFillRaw >= 0.95 && percentFillRaw <= 1.05 ? '✅ Ideal' : '❌ Deviation from ideal fill'}<br>
+  🔍 Charge Status: ${isProperlyCharged ? '✅ Acceptable - ⚠️ Exceptions: Behavior Overrides Pressure to Temp Range.' : '❌ “Properly Charged” Not confirmed'}
+</div>
 
-    <div class="report-section">
-      <strong>📊 Confidence Score Breakdown:</strong><br>
-      🌬️ Vent ΔT: ${ventDelta.toFixed(1)}°F – ${ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max ? '✅ Within expected range' : `❌ Expected ${expectedVentRange.min}–${expectedVentRange.max}°F`}<br>
-      ❄️ Superheat: ${superheat.toFixed(1)}°F – ${superheat >= 10 && superheat <= 15 ? '✅ Optimal' : '❌ Outside optimal range (10–15°F)' }<br>
-      🔥 Condenser ΔT: ${condDelta.toFixed(1)}°F – ${condDelta >= 25 ? '✅ Acceptable' : '❌ Low (Target: ≥25°F)' }<br>
-      🧪 Fill %: ${fillPercent}% – ${percentFillRaw >= 0.98 && percentFillRaw <= 1.02 ? '✅ Ideal' : '❌ Deviation from ideal fill'}<br>
-      🔍 Diagnosis: ${isProperlyCharged ? '✅ Properly Charged' : '❌ Not confirmed “Properly Charged”'}
-    </div>
 
     ${techNotes ? `<div class="report-section"><strong>Technician Notes:</strong><br>${techNotes.replace(/\n/g, '<br>')}</div>` : ''}
     ${photoSection}
