@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>❄️ AC_Triage Pro v3.6</title>
+  <title>❄️ AC_Triage Evaluation Pro v3.9a</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -119,88 +119,153 @@ img {
 
 <!-- Branding Preview in Report -->
 <div id="brandingHeader" style="margin-bottom: 20px; padding: 10px; background: white; border: 1px solid #ccc; border-radius: 5px;"></div>
-<button onclick="openBrandingModal()" style="float:right; margin-bottom: 10px;">Change Branding</button>
+
+<button id="changeBrandingBtn" style="float:right; margin-bottom: 10px;">Change Branding</button>
 
 <!-- END Branding Modal -->
 <br>
-<h2>🔧 AC_Triage Pro v3.6 </h2>
+<h2>🔧 AC_Triage Evaluation Pro v3.9a </h2>
 
-<div class="description">
-            This report establishes a baseline for evaluating A/C system performance. It supports accurate repair decisions and post-repair validation. Settings for best results: test with MAX cooling, lowest temp, blower on high, condenser fan active, and engine at 1,500 RPM.
-        </div>
+<div class="description">This report establishes a baseline for evaluating A/C system performance. It supports accurate repair decisions and post-repair validation.
+</div>
+
 <div style="display: flex; gap: 20px;">
   <div style="flex: 1;">
     <label>RO#:</label>
     <input type="text" id="ro" />
   </div>
   <div style="flex: 1;">
-    <label>Customer Name:</label>
+    <label>Customer:</label>
     <input type="text" id="customer" />
   </div>
   <div style="flex: 2;">
-    <label>Vehicle (Year/Make/Model):</label>
+    <label>Vehicle <em>(YMM)</em>:</label>
     <input type="text" id="vehicle" />
   </div>
 </div>
+<div id="timestamp" style="margin: 10px 0; font-weight: bold;"></div>
 
-<div style="display: flex; gap: 20px;">
+<!-- First Row: ZIP, Ambient, RH -->
+
+<div style="display: flex; flex-wrap: nowrap; gap: 10px; margin-bottom: 10px;">
   <div style="flex: 1;">
-    <label>Refrigerant Type:</label>
-    <select id="refrigerant">
+    <label for="zipCode" style="font-size: 0.9em;">ZIP Code <em>(fetch weather)</em>:</label>
+    <input type="text" id="zipCode" maxlength="5" placeholder="e.g. 77001" style="width: 25%;" />
+    <small id="weatherStatus" style="color: #0074D9;"></small>
+<div> <small>Tech Note: <em>Best Ambient Temp sampling is taken 18" front of condenser</em></small>
+</div>  
+</div>
+  </div>
+
+<div style="display: flex; flex-wrap: nowrap; gap: 10px; align-items: flex-end; margin-bottom: 10px;">
+  <!-- Ambient Temp -->
+  <div style="width: 20%;">
+    <label style="font-size: 0.9em;">Ambient Temp (°F):</label>
+    <input type="number" id="ambient" style="width: 90%;" />
+  </div>
+  <!-- Humidity -->
+  <div style="width: 20%;">
+    <label style="font-size: 0.9em;">Humidity (%):</label>
+    <input type="number" id="rh" min="0" max="100" placeholder="e.g. 45" style="width: 90%;" />
+  </div>
+  <!-- Refrigerant Type -->
+  <div style="width: 22%;">
+    <label style="font-size: 0.9em;">Refrigerant Type:</label>
+    <select id="refrigerant" style="width: 100%;">
       <option value="r134a">R-134a</option>
       <option value="r1234yf">R-1234yf</option>
     </select>
   </div>
-  <div style="flex: 1;">
-    <label>Factory Charge:</label>
-    <input type="number" id="factoryCharge" placeholder="e.g. 20" />
+  <!-- Factory Charge -->
+  <div style="width: 20%;">
+    <label style="font-size: 0.9em;">Factory Charge:</label>
+    <input type="number" id="factoryCharge" placeholder="e.g. 20" style="width: 90%;" />
   </div>
-  <div style="width: 80px;">
-    <label>&nbsp;</label>
-    <select id="chargeUnit">
+  <!-- Charge Unit -->
+  <div style="width: 20%;">
+    <label style="font-size: 0.9em;">Unit:</label>
+    <select id="chargeUnit" style="width: 60%;">
       <option value="oz">oz</option>
       <option value="lb">lb</option>
       <option value="g">g</option>
     </select>
   </div>
 </div>
-<div id="timestamp" style="margin: 10px 0; font-weight: bold;"></div>
 
-<div style="display: flex; gap: 20px;">
-  <div style="flex: 1;">
-    <label>Ambient Temperature (°F):</label>
-    <input type="number" id="ambient" />
+
+<div style="margin-bottom: 10px; font-size: 0.95em; color: #0074D9;">
+  <div id="staticPressureRangeDisplay">
+     ⏲️ Expected Static Pressure (Engine Off): <em>ambient temp?</em>
   </div>
+  <div style="display: flex; gap: 10px; margin-top: 6px;">
+    <div style="width: 200px;">
+      <label style="font-size: 0.9em;">Static Pressure (PSI):</label>
+      <input type="number" id="staticPressure" placeholder="e.g. 94" style="width: 80%;" />
+    </div>
+  </div>
+</div>
+
+<div class="description"><small>Tech Note: <em>Dynamic Test: Setting on MAX cooling (lowest temp), blower max, condenser fan active, 800~1,500 RPM.</em></small></div>
+
+<div style="display: flex; gap: 20px; align-items: flex-end; margin-bottom: 10px;">
+
   <div style="flex: 1;">
+    <label style="font-weight: bold; font-size: 0.9em;">Low-Side Pressure (PSI):</label><br>
+    <input type="number" id="evapPressure" style="width: 100%;" />
+  </div>
+
+  <div style="flex: 1;">
+    <label style="font-weight: bold; font-size: 0.9em;">Evaporator Outlet Temp (°F):</label><br>
+    <input type="number" id="evapOutlet" style="width: 100%;" />
+  </div>
+
+  <div style="flex: 1;">
+    <label style="font-weight: bold; font-size: 0.9em;">Evaporator Temp Source:</label><br>
+    <select id="evapTempSource" style="width: 100%;">
+      <option value="line">At Suction Line</option>
+      <option value="sensor">At ETS (Sensor Data)</option>
+    </select>
+  </div>
+
+</div>
+
+<!-- Low Side Saturation Temp Display below -->
+<div id="satTempDisplay" style="font-size: 0.9em; color: #0074D9; margin-bottom: 15px;"></div>
+
+<div style="display: flex; gap: 20px; align-items: flex-end; margin-bottom: 10px;">
+
+  <div style="flex: 1;">
+    <label style="font-weight: bold; color: #FF4136; font-size: 0.9em;">High-Side Pressure (PSI):</label><br>
+    <input type="number" id="highPressure" style="width: 100%;" />
+      </div>
+  <div style="flex: 1;">
+    <label style="font-weight: bold; font-size: 0.9em;">Condenser Outlet Temp (°F):</label><br>
+    <input type="number" id="outlet" style="width: 100%;" />
+  </div>
+
+  <div style="flex: 1;">
+    <label for="compressorType" style="font-weight: bold; font-size: 0.9em;">Compressor Type:</label><br>
+    <select id="compressorType" style="width: 100%;">
+      <option value="vdc">VDC (Variable Displacement)</option>
+      <option value="fixed">Fixed</option>
+      <option value="scroll">Scroll</option>
+    </select>
+  </div>
+
+</div>
+<div id="highSatTempDisplay" style="font-size: 0.9em; color: #FF4136; margin-bottom: 15px;"></div>
+
+
+<div style="flex: 1;">
     <label>Center Vent Temperature (°F):</label>
     <input type="number" id="vent" />
   </div>
-</div>
 
-<div style="display: flex; gap: 20px;">
-  <div style="flex: 1;">
-    <label style="color: #0074D9;">Low-Side Pressure (Evap PSI):</label>
-    <input type="number" id="evapPressure" />
-    <div id="satTempDisplay" style="font-size: 0.9em; color: #0074D9;"></div>
-  </div>
-  <div style="flex: 1;">
-    <label>Evaporator Outlet Temp (°F):</label>
-    <input type="number" id="evapOutlet" />
-  </div>
-</div>
-
-<div style="display: flex; gap: 20px;">
-  <div style="flex: 1;">
-    <label style="color: #FF4136;">High-Side Pressure (Cond PSI):</label>
-    <input type="number" id="highPressure" />
-    <div id="highSatTempDisplay" style="font-size: 0.9em; color: #FF4136;"></div>
-  </div>
-  <div style="flex: 1;">
-    <label>Condenser Outlet Line Temp (°F):</label>
-    <input type="number" id="outlet" />
-  </div>
-</div>
-
+<label for="testStage">Evaluation Type:</label>
+<select id="testStage">
+  <option value="Pre-Test Evaluation">Pre-Test Evaluation</option>
+  <option value="Final Results Evaluation">Final Results Evaluation</option>
+</select>
 <label>Technician Observations:</label>
 <textarea id="techNotes" rows="4" placeholder="Enter any notes, findings, or recommendations..."></textarea>
 
@@ -213,19 +278,9 @@ img {
 <button id="downloadBtn">📄 Download PDF</button>
 
 <div class="result" id="output"></div>
+
+
 <script>
-
-function getExpectedVentDelta(ambient) {
-  if (ambient <= 35) return { min: 1, max: 2 };
-  if (ambient <= 40) return { min: 5, max: 7 };
-  if (ambient <= 50) return { min: 10, max: 15 };
-  if (ambient <= 70) return { min: 15, max: 25 };
-  if (ambient <= 80) return { min: 20, max: 30 };
-  if (ambient <= 95) return { min: 25, max: 35 };
-  return { min: 30, max: 40 };
-}
-
-
 function openBrandingModal() {
   document.getElementById('brandingModal').style.display = 'flex';
 }
@@ -281,9 +336,56 @@ document.addEventListener('DOMContentLoaded', () => {
   renderBranding();
 });
 
-
 document.addEventListener('DOMContentLoaded', function () {
- const ptTable = {
+document.getElementById('zipCode').addEventListener('input', function () {
+  const zip = this.value.trim();
+  const weatherStatus = document.getElementById('weatherStatus');
+
+  if (zip.length === 5 && /^\d{5}$/.test(zip)) {
+    weatherStatus.textContent = 'Fetching weather...';
+
+    fetch(`https://api.openweathermap.org/data/2.5/weather?zip=${zip},us&units=imperial&appid=c1f623f582996a080fa582661efc36b5`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.main) {
+          const ambientField = document.getElementById('ambient');
+          const rhField = document.getElementById('rh');
+
+          // Only fill if empty to allow override
+          if (!ambientField.value) ambientField.value = data.main.temp.toFixed(1);
+          if (!rhField.value) rhField.value = data.main.humidity;
+	  evaluateStaticPressure();
+          weatherStatus.textContent =
+            `✅ Weather Loaded: ${data.main.temp.toFixed(1)}°F, RH: ${data.main.humidity}% (editable)`;
+
+          // Optional: store for advanced logic
+          window.fetchedWeather = {
+            ambient: data.main.temp,
+            rh: data.main.humidity
+          };
+        } else {
+          weatherStatus.textContent = '⚠️ Invalid ZIP or data unavailable.';
+        }
+      })
+      .catch(() => {
+        weatherStatus.textContent = '⚠️ Failed to fetch weather.';
+      });
+  } else {
+    weatherStatus.textContent = '';
+  }
+});
+
+function getExpectedVentDelta(ambient) {
+  if (ambient <= 35) return { min: 1, max: 2 };
+  if (ambient <= 40) return { min: 5, max: 7 };
+  if (ambient <= 50) return { min: 10, max: 15 };
+  if (ambient <= 70) return { min: 15, max: 25 };
+  if (ambient <= 80) return { min: 20, max: 30 };
+  if (ambient <= 95) return { min: 25, max: 35 };
+  return { min: 30, max: 40 };
+}
+
+const ptTable = {
     r134a: [{ psi: 6.5, temp: 0 }, { psi: 7.0, temp: 1 }, { psi: 7.5, temp: 2 },
 { psi: 8.0, temp: 3 }, { psi: 8.5, temp: 4 }, { psi: 9.1, temp: 5 },
 { psi: 9.6, temp: 6 }, { psi: 10.2, temp: 7 }, { psi: 10.8, temp: 8 },
@@ -347,30 +449,38 @@ document.addEventListener('DOMContentLoaded', function () {
 { psi: 380.6, temp: 180 }, { psi: 385.0, temp: 181 }, { psi: 389.4, temp: 182 }, 
 { psi: 393.8, temp: 183 }, { psi: 398.3, temp: 184 }, { psi: 400.0, temp: 185 }
 ],
-    r1234yf: [{ psi: 9, temp: 0 }, { psi: 11, temp: 4 }, { psi: 14, temp: 8 },
-      { psi: 16, temp: 12 }, { psi: 19, temp: 16 }, { psi: 20, temp: 18 }, { psi: 23, temp: 22 },
-      { psi: 24, temp: 23 }, { psi: 25, temp: 24 }, { psi: 28, temp: 28 }, { psi: 31, temp: 32 },
-      { psi: 33, temp: 34 }, { psi: 35, temp: 36 }, { psi: 37, temp: 38 }, { psi: 38, temp: 40 },
-      { psi: 40, temp: 42 }, { psi: 42, temp: 44 }, { psi: 44, temp: 46 }, { psi: 47, temp: 48 },
-      { psi: 49, temp: 50 }, { psi: 51, temp: 52 }, { psi: 53, temp: 54 }, { psi: 56, temp: 56 },
-      { psi: 58, temp: 58 }, { psi: 61, temp: 60 }, { psi: 63, temp: 62 }, { psi: 66, temp: 64 },
-      { psi: 68, temp: 66 }, { psi: 71, temp: 68 }, { psi: 74, temp: 70 }, { psi: 77, temp: 72 },
-      { psi: 80, temp: 74 }, { psi: 83, temp: 76 }, { psi: 86, temp: 78 }, { psi: 89, temp: 80 },
-      { psi: 92, temp: 82 }, { psi: 96, temp: 84 }, { psi: 99, temp: 86 }, { psi: 102, temp: 88 },
-      { psi: 106, temp: 90 }, { psi: 110, temp: 92 }, { psi: 113, temp: 94 }, { psi: 117, temp: 96 },
-      { psi: 121, temp: 98 }, { psi: 125, temp: 100 }, { psi: 129, temp: 102 }, { psi: 133, temp: 104 },
-      { psi: 137, temp: 106 }, { psi: 142, temp: 108 }, { psi: 146, temp: 110 }, { psi: 150, temp: 112 },
-      { psi: 155, temp: 114 }, { psi: 160, temp: 116 }, { psi: 164, temp: 118 }, { psi: 169, temp: 120 },
-      { psi: 174, temp: 122 }, { psi: 179, temp: 124 }, { psi: 184, temp: 126 }, { psi: 190, temp: 128 },
-      { psi: 195, temp: 130 }, { psi: 200, temp: 132 }, { psi: 206, temp: 134 }, { psi: 212, temp: 136 },
-      { psi: 218, temp: 138 }, { psi: 223, temp: 140 }, { psi: 229, temp: 142 }, { psi: 236, temp: 144 },
-      { psi: 242, temp: 146 }, { psi: 248, temp: 148 }, { psi: 255, temp: 150 }, { psi: 261, temp: 152 },
-      { psi: 268, temp: 154 }, { psi: 275, temp: 156 }, { psi: 282, temp: 158 }, { psi: 289, temp: 160 },
-      { psi: 296, temp: 162 }, { psi: 304, temp: 164 }, { psi: 311, temp: 166 }, { psi: 319, temp: 168 },
-      { psi: 326, temp: 170 }, { psi: 334, temp: 172 }, { psi: 342, temp: 174 }, { psi: 351, temp: 176 },
-      { psi: 359, temp: 178 }, { psi: 368, temp: 180 }, { psi: 376, temp: 182 }, { psi: 385, temp: 184 },
-      { psi: 394, temp: 186 }, { psi: 403, temp: 188 }, { psi: 413, temp: 190 }
-    ]
+    r1234yf: [
+            { psi: 9, temp: 0 }, { psi: 11, temp: 4 }, { psi: 14, temp: 8 },
+            { psi: 16, temp: 12 }, { psi: 19, temp: 16 }, { psi: 20, temp: 18 },
+            { psi: 23, temp: 22 }, { psi: 24, temp: 23 }, { psi: 25, temp: 24 },
+            { psi: 28, temp: 28 }, { psi: 31, temp: 32 }, { psi: 33, temp: 34 },
+            { psi: 35, temp: 36 }, { psi: 37, temp: 38 }, { psi: 38, temp: 40 },
+            { psi: 40, temp: 42 }, { psi: 42, temp: 44 }, { psi: 44, temp: 46 },
+            { psi: 47, temp: 48 }, { psi: 49, temp: 50 }, { psi: 51, temp: 52 },
+            { psi: 53, temp: 54 }, { psi: 56, temp: 56 }, { psi: 58, temp: 58 },
+            { psi: 61, temp: 60 }, { psi: 63, temp: 62 }, { psi: 66, temp: 64 },
+            { psi: 68, temp: 66 }, { psi: 71, temp: 68 }, { psi: 74, temp: 70 },
+            { psi: 77, temp: 72 }, { psi: 80, temp: 74 }, { psi: 83, temp: 76 },
+            { psi: 86, temp: 78 }, { psi: 89, temp: 80 }, { psi: 92, temp: 82 },
+            { psi: 96, temp: 84 }, { psi: 99, temp: 86 }, { psi: 102, temp: 88 },
+            { psi: 106, temp: 90 }, { psi: 110, temp: 92 }, { psi: 113, temp: 94 },
+            { psi: 117, temp: 96 }, { psi: 121, temp: 98 }, { psi: 125, temp: 100 },
+            { psi: 129, temp: 102 }, { psi: 133, temp: 104 }, { psi: 137, temp: 106 },
+            { psi: 142, temp: 108 }, { psi: 146, temp: 110 }, { psi: 150, temp: 112 },
+            { psi: 155, temp: 114 }, { psi: 160, temp: 116 }, { psi: 164, temp: 118 },
+            { psi: 169, temp: 120 }, { psi: 174, temp: 122 }, { psi: 179, temp: 124 },
+            { psi: 184, temp: 126 }, { psi: 190, temp: 128 }, { psi: 195, temp: 130 },
+            { psi: 200, temp: 132 }, { psi: 206, temp: 134 }, { psi: 212, temp: 136 },
+            { psi: 218, temp: 138 }, { psi: 223, temp: 140 }, { psi: 229, temp: 142 },
+            { psi: 236, temp: 144 }, { psi: 242, temp: 146 }, { psi: 248, temp: 148 },
+            { psi: 255, temp: 150 }, { psi: 261, temp: 152 }, { psi: 268, temp: 154 },
+            { psi: 275, temp: 156 }, { psi: 282, temp: 158 }, { psi: 289, temp: 160 },
+            { psi: 296, temp: 162 }, { psi: 304, temp: 164 }, { psi: 311, temp: 166 },
+            { psi: 319, temp: 168 }, { psi: 326, temp: 170 }, { psi: 334, temp: 172 },
+            { psi: 342, temp: 174 }, { psi: 351, temp: 176 }, { psi: 359, temp: 178 },
+            { psi: 368, temp: 180 }, { psi: 376, temp: 182 }, { psi: 385, temp: 184 },
+            { psi: 394, temp: 186 }, { psi: 403, temp: 188 }, { psi: 413, temp: 190 }
+        ]
   };
 
   let attachedImages = [];
@@ -385,7 +495,91 @@ document.addEventListener('DOMContentLoaded', function () {
     return table[0].temp;
   }
 
-  function updateSaturationDisplay() {
+function getStaticPressureRange(ambientTemp, refrigerant) {
+  const table = ptTable[refrigerant];
+  if (!table || table.length === 0) return { min: NaN, max: NaN, center: NaN };
+
+  let lower = null, upper = null;
+
+  for (let i = 0; i < table.length - 1; i++) {
+    const t1 = table[i].temp;
+    const t2 = table[i + 1].temp;
+    if (ambientTemp >= t1 && ambientTemp <= t2) {
+      lower = table[i];
+      upper = table[i + 1];
+      break;
+    }
+  }
+
+  if (!lower || !upper) return { min: NaN, max: NaN, center: NaN };
+
+  const ratio = (ambientTemp - lower.temp) / (upper.temp - lower.temp);
+  const interpolatedPsi = lower.psi + ratio * (upper.psi - lower.psi);
+
+  return {
+    center: interpolatedPsi,
+    min: interpolatedPsi - 2,
+    max: interpolatedPsi + 2
+  };
+}
+
+function evaluateStaticPressure() {
+  const ambient = parseFloat(document.getElementById('ambient').value);
+  const refrigerant = document.getElementById('refrigerant').value;
+  const staticPSI = parseFloat(document.getElementById('staticPressure').value);
+  const staticDisplay = document.getElementById('staticPressureRangeDisplay');
+
+  if (isNaN(ambient)) {
+    staticDisplay.innerHTML = ` ⏲️ Expected Static Pressure (Engine Off): <em>Enter ambient temp!</em>`;
+    return;
+  }
+
+  const range = getStaticPressureRange(ambient, refrigerant);
+
+  if (isNaN(staticPSI)) {
+    staticDisplay.innerHTML = `
+       ⏲️ Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+      <strong>${range.min.toFixed(0)} – ${range.max.toFixed(0)} psi</strong><br>
+      <em>Enter Static Pressure (PSI) to diagnose fill state or contamination.</em>
+    `;
+    return;
+  }
+
+  const status = (
+    staticPSI < range.min ? '⚠️ Below Range – Possible Undercharge' :
+    staticPSI > range.max + 5 ? '🔴 Above Range – Possible Non-Condensable Gas (Air)' :
+    staticPSI > range.max ? '⚠️ Slightly High – Monitor Fill or Heat Soak' :
+    '✅ Within Range'
+  );
+
+  staticDisplay.innerHTML = `
+     ⏲️ Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+    <strong>${range.min.toFixed(0)} – ${range.max.toFixed(0)} psi → Static Pressure Tested: ${staticPSI}psi<br>
+<strong>${status}</strong>
+  `;
+}
+
+function getSaturationTemp(pressure, refrigerant) {
+  const table = ptTable[refrigerant];
+  if (!table || table.length === 0) return NaN;
+
+  for (let i = 0; i < table.length - 1; i++) {
+    const p1 = table[i].psi;
+    const p2 = table[i + 1].psi;
+    const t1 = table[i].temp;
+    const t2 = table[i + 1].temp;
+
+    if (pressure >= p1 && pressure <= p2) {
+      const ratio = (pressure - p1) / (p2 - p1);
+      return t1 + ratio * (t2 - t1);
+    }
+  }
+
+  return NaN; // If pressure is out of PT table range
+}
+
+
+function updateSaturationDisplay() {
     const lowPsi = parseFloat(document.getElementById('evapPressure').value);
     const highPsi = parseFloat(document.getElementById('highPressure').value);
     const refrigerant = document.getElementById('refrigerant').value;
@@ -437,16 +631,77 @@ function generateConfidenceBreakdown(ventDelta, expectedVentRange, superheat, co
   return `
     <div class="report-section">
       <strong>📊 Confidence Score Breakdown:</strong><br>
-      🌬️ Vent ΔT: ${ventDelta.toFixed(1)}°F – ${ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max ? '✅ Within expected range' : `❌ Expected ${expectedVentRange.min}–${expectedVentRange.max}°F`}<br>
-      ❄️ Superheat: ${superheat.toFixed(1)}°F – ${superheat >= 10 && superheat <= 15 ? '✅ Optimal' : '❌ Outside optimal range (10–15°F)' }<br>
-      🔥 Condenser ΔT: ${condDelta.toFixed(1)}°F – ${condDelta >= 25 ? '✅ Acceptable' : '❌ Low (Target: ≥25°F)' }<br>
+      🌬️ Vent ΔT: ${ventDelta.toFixed(0)}°F – ${ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max ? '✅ Within expected range' : `❌ Expected ${expectedVentRange.min}–${expectedVentRange.max}°F`}<br>
+      ❄️ Superheat: ${superheat.toFixed(0)}°F – ${superheat >= 10 && superheat <= 15 ? '✅ Optimal' : '❌ Outside optimal range (10–15°F)' }<br>
+      🔥 Condenser ΔT: ${condDelta.toFixed(0)}°F – ${condDelta >= 25 ? '✅ Acceptable' : '❌ Low (Target: ≥25°F)' }<br>
       🧪 Fill %: ${fillPercent}% – ${fillPercent >= 98 && fillPercent <= 102 ? '✅ Ideal' : '❌ Deviation from ideal fill'}<br>
       🔍 Diagnosis: ${isProperlyCharged ? '✅ Properly Charged' : '❌ Not confirmed “Properly Charged”'}
     </div>
   `;
 }
 
+
+function evaluateEvapTempDifferential(satTemp, evapTemp, source, rh) {
+  const diff = evapTemp - satTemp;
+  let result = "";
+  let tag = "";
+  let scoreImpact = 0;
+  let rhNote = "";
+
+  if (source === "sensor") {
+    if (diff >= 5 && diff <= 10) {
+      result = "✅ ETS Differential Normal";
+      tag = "CODE-ETS-RANGE-OK-11";
+      scoreImpact = 1;
+    } else if (diff < 5) {
+      result = "⚠️ ETS Too Close to Saturation – Freeze Risk";
+      tag = "CODE-ETS-RANGE-LOW-12";
+      scoreImpact = rh > 70 ? 0 : -1;
+      if (rh > 70) rhNote = "Note: High humidity detected. Freeze margin adjusted.";
+    } else if (diff > 15) {
+      result = "⚠️ ETS Too High – Check Mounting";
+      tag = "CODE-ETS-RANGE-HIGH-13";
+      scoreImpact = -1;
+    } else {
+      result = "⚠️ Unusual ETS Differential – Confirm Sensor Accuracy";
+      tag = "CODE-ETS-RANGE-UNKNOWN-17";
+      scoreImpact = 0;
+    }
+  }
+
+  if (source === "line") {
+    if (diff >= 8 && diff <= 15) {
+      result = "✅ Suction Line Temp Normal";
+      tag = "CODE-SUCTION-RANGE-OK-14";
+      scoreImpact = 1;
+    } else if (diff < 8) {
+      result = "⚠️ Outlet Temp Too Cold – Flooding?";
+      tag = "CODE-SUCTION-RANGE-LOW-15";
+      scoreImpact = rh > 70 ? 0 : -1;
+      if (rh > 70) rhNote = "Note: High humidity detected. Low outlet temp allowed due to latent load.";
+    } else if (diff > 18) {
+      result = "⚠️ Outlet Temp Too Warm – Poor Load Transfer";
+      tag = "CODE-SUCTION-RANGE-HIGH-16";
+      scoreImpact = -1;
+    } else {
+      result = "⚠️ Unusual Outlet Temp Differential – Confirm Probe Accuracy";
+      tag = "CODE-SUCTION-RANGE-UNKNOWN-17";
+      scoreImpact = 0;
+    }
+  }
+
+  return {
+    result: result,
+    tag: tag,
+    scoreImpact: scoreImpact,
+    rhNote: rhNote
+  };
+}
+
 function runEvaluation() {
+  let resultHTML = '';
+  let diagnosticTags = [];
+  let confidenceScore = 0;
   const refrigerant = document.getElementById('refrigerant').value;
   const ambient = parseFloat(document.getElementById('ambient').value);
   const vent = parseFloat(document.getElementById('vent').value);
@@ -457,8 +712,42 @@ function runEvaluation() {
   const factoryCharge = parseFloat(document.getElementById('factoryCharge').value);
   const unit = document.getElementById('chargeUnit').value;
   const techNotes = document.getElementById('techNotes').value;
+  const testStage = document.getElementById('testStage').value;
+  const evapTemp = parseFloat(document.getElementById("evapOutlet").value);
+  const evapTempSource = document.getElementById("evapTempSource").value;
+  const rh = parseFloat(document.getElementById("rh").value || 0); // assuming an RH input exists
+  const satTemp = getSaturationTemp(evapPressure, refrigerant);
+  const evapResult = evaluateEvapTempDifferential(satTemp, evapOutlet, evapTempSource, rh);
+  const compressorType = document.getElementById("compressorType").value;
+  const staticPSI = parseFloat(document.getElementById('staticPressure').value);
+  const staticRange = getStaticPressureRange(ambient, refrigerant);
+  const staticMin = staticRange.min.toFixed(0);
+  const staticMax = staticRange.max.toFixed(0);
 
-  if ([ambient, vent, evapPressure, highPressure, evapOutlet, condOutlet].some(isNaN)) {
+let staticStatus = '';
+if (isNaN(staticPSI)) {
+  staticStatus = '⚠️ No static pressure measured.';
+} else if (staticPSI < staticRange.min) {
+  staticStatus = '⚠️ Below Range – Possible Undercharge';
+} else if (staticPSI > staticRange.max + 5) {
+  staticStatus = '🔴 Above Range – Possible Non-Condensable Gas (Air)';
+} else if (staticPSI > staticRange.max) {
+  staticStatus = '⚠️ Slightly High – Monitor Fill or Heat Soak';
+} else {
+  staticStatus = '✅ Within Range';
+}
+
+
+resultHTML += `<h3>🌡️ Evaporator Temp Differential Check</h3>`;
+resultHTML += `<p>${evapResult.result}</p>`;
+if (evapResult.rhNote) {
+  resultHTML += `<p style="color: gray; font-style: italic;">${evapResult.rhNote}</p>`;
+}
+diagnosticTags.push(evapResult.tag);
+confidenceScore += evapResult.scoreImpact; 
+
+
+ if ([ambient, vent, evapPressure, highPressure, evapOutlet, condOutlet].some(isNaN)) {
     alert('Please complete all pressure/temperature fields.');
     return;
   }
@@ -489,11 +778,11 @@ function runEvaluation() {
      compressionRatio = highPressure / evapPressure;
 }
 
-// 🔺 Define Dynamic Threshold Based on Ambient Temperature
- const highRatioThreshold =
-  ambient >= 100 ? 5.0 :
-  ambient >= 90  ? 4.5 :
-  4.0; // Default threshold
+// 🔺 Define Dynamic compressor type Threshold Based on Ambient Temperature
+const highRatioThreshold = compressorType === 'vdc'
+  ? (ambient >= 100 ? 5.2 : ambient >= 90 ? 4.8 : 4.5)
+  : (ambient >= 100 ? 5.0 : ambient >= 90 ? 4.5 : 4.0);
+
 
   const fillBar = `
     <div style="margin: 10px 0;">
@@ -524,19 +813,18 @@ const compressionRatioSection = `
           (
             compressionRatio > highRatioThreshold
               ? `🔴 Above ${highRatioThreshold.toFixed(1)}:1 threshold – possible restriction or overcharge.` +
-                (fillPercent >= 95 && fillPercent <= 105
-                  ? `<br>⚠️ Check if system uses a VDC compressor. If so, verify solenoid control.` : '')
+                (compressorType === 'vdc'
+                  ? `<br>⚠️ VDC Detected – Verify solenoid control, stroke response, or partial loading.` : '')
               : compressionRatio < 2.5
                 ? `🟠 Below 2.5:1 – possible weak or under-commanded compressor.` +
-                  (fillPercent >= 95 && fillPercent <= 105
-                    ? `<br>⚠️ If VDC, test solenoid duty cycle or override control.` : '')
+                  (compressorType === 'vdc'
+                    ? `<br>⚠️ VDC Detected – Test solenoid duty cycle or attempt override.` : '')
                 : `✅ Within expected range for current ambient conditions.`
           )
         : 'N/A – ⚠️ Unable to calculate'
     }
   </div>
 `;
-
 
   let chargeStatus = '';
   if (factoryOz > 0 && !isNaN(factoryOz)) {
@@ -746,36 +1034,50 @@ if (diagnosis.includes('CODE-FILL-LOW-01')) {
     <div style="text-align:center; margin-bottom: 20px;">
       ${brandingContent}
     </div>
-    <strong>Customer Report</strong><br>
-    Name: ${customer || 'N/A'}<br>
+         <h3 style="text-align: center; margin-bottom: 10px;">📄 A/C System Performance Report</h3>    
+         <h3 style="text-align: center; margin-bottom: 10px;"> ${testStage}</h3>
+             
+    <strong>Prepared for: ${customer || 'N/A'}</strong><br>
     Vehicle: ${vehicle || 'N/A'}<br>
     RO#: ${ro || 'N/A'}<br>
     Time: ${timestamp}<br><br>
+    Relative Humidity: ${isNaN(rh) ? 'N/A' : rh + '%'}<br><br>
 
-    <div class="report-section">
+<div class="report-section">
+  <strong> ⏲️ Static Pressure Test (Engine Off):</strong><br>
+  Ambient Temp: ${ambient}°F<br>
+  Expected Range: ${staticMin} – ${staticMax} psi<br>
+  Measured Static Pressure: ${isNaN(staticPSI) ? 'N/A' : staticPSI + ' psi'}<br>
+  Status: ${staticStatus}
+</div>
+
+<div class="report-section">
       <strong>🌬️ Vent Temp Performance:</strong><br>
       Ambient: ${ambient}°F<br>
-      Vent: ${vent}°F → ΔT: ${ventDelta.toFixed(1)}°F
+      Vent: ${vent}°F → ΔT: ${ventDelta.toFixed(0)}°F
     </div>
 
     <div class="report-section">
-      <strong>❄️Evaporator Superheat Performance:</strong><br>
-      PSI: ${evapPressure}, Sat: ${evapSat.toFixed(1)}°F<br>
-      Outlet: ${evapOutlet}°F → Superheat: ${superheat.toFixed(1)}°F
-    </div>
+  <strong>❄️Evaporator Superheat Performance:</strong><br>
+  PSI: ${evapPressure}, Sat: ${evapSat.toFixed(0)}°F<br>
+  Outlet: ${evapOutlet}°F → Superheat: ${superheat.toFixed(0)}°F<br>
+  ${evapResult.result}<br>
+  ${evapResult.rhNote ? `<span style="color: gray; font-style: italic;">${evapResult.rhNote}</span>` : ''}
+</div>
+
 
     <div class="report-section">
       <strong>🔥Condenser Performance Delta:</strong><br>
-      PSI: ${highPressure}, Sat: ${condSat.toFixed(1)}°F<br>
-      Outlet: ${condOutlet}°F → ΔT: ${condDelta.toFixed(1)}°F
+      PSI: ${highPressure}, Sat: ${condSat.toFixed(0)}°F<br>
+      Outlet: ${condOutlet}°F → ΔT: ${condDelta.toFixed(0)}°F
     </div>
 
     ${compressionRatioSection}
 
 <div class="report-section">
   <strong>🧪 Refrigerant Charge Estimation:</strong><br>
-  Observed Condenser Saturation Temp: ${condSat.toFixed(1)}°F<br>
-  Target Condenser Saturation Temp: ${expectedCondSat.toFixed(1)}°F<br>
+  Actual Condenser Saturation Temp: ${condSat.toFixed(1)}°F<br>
+  Desired Condenser Saturation Temp: ${expectedCondSat.toFixed(1)}°F<br>
   Factory Charge: ${factoryCharge} ${unit}<br>
   ${fillBar}
   ${chargeStatus}
@@ -796,13 +1098,14 @@ if (diagnosis.includes('CODE-FILL-LOW-01')) {
       Score: ${score}/5<br>
       <strong>${confidenceEmoji} ${confidenceLabel}</strong>
     </div>
+
 <div class="report-section">
   <strong>📊 Confidence Score Breakdown:</strong><br>
-  🌬️ Vent ΔT: ${ventDelta.toFixed(1)}°F – ${ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max ? '✅ Within expected range' : `❌ Expected ${expectedVentRange.min}–${expectedVentRange.max}°F`}<br>
-  ❄️ Superheat: ${superheat.toFixed(1)}°F – ${superheat >= 10 && superheat <= 15 ? '✅ Optimal' : '❌ Outside optimal range (10–15°F)' }<br>
+  🌬️ Vent ΔT: ${ventDelta.toFixed(0)}°F – ${ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max ? '✅ Within expected range' : `❌ Expected ${expectedVentRange.min}–${expectedVentRange.max}°F`}<br>
+  ❄️ Superheat: ${superheat.toFixed(0)}°F – ${superheat >= 10 && superheat <= 15 ? '✅ Optimal' : '❌ Outside optimal range (10–15°F)' }<br>
   🔥 Condenser ΔT: ${condDelta.toFixed(1)}°F – ${condDelta >= 25 ? '✅ Acceptable' : '❌ Low (Target: ≥25°F)' }<br>
   🧪 Fill %: ${fillPercent}% – ${percentFillRaw >= 0.95 && percentFillRaw <= 1.05 ? '✅ Ideal' : '❌ Deviation from ideal fill'}<br>
-  🔍 Charge Status: ${isProperlyCharged ? '✅ Acceptable - ⚠️ Exceptions: Behavior Overrides Pressure to Temp Range.' : '❌ “Properly Charged” Not confirmed'}
+  🔍 Charge Status: ${isProperlyCharged ? '✅ Acceptable - *Exceptions: Overall Behavior Overrides Pressure to Temp Range.' : '❌ “Properly Charged” Not confirmed'}
 </div>
 
 
@@ -849,12 +1152,20 @@ function downloadPDF() {
   });
 }
 
-  document.getElementById('evaluateBtn').addEventListener('click', runEvaluation);
-  document.getElementById('downloadBtn').addEventListener('click', downloadPDF);
+document.getElementById('changeBrandingBtn').addEventListener('click', openBrandingModal);
+document.getElementById('ambient').addEventListener('input', evaluateStaticPressure);
+document.getElementById('refrigerant').addEventListener('change', evaluateStaticPressure);
+document.getElementById('staticPressure').addEventListener('input', evaluateStaticPressure);
+document.getElementById('evaluateBtn').addEventListener('click', runEvaluation);
+document.getElementById('downloadBtn').addEventListener('click', downloadPDF);
   document.getElementById('photos').addEventListener('change', previewPhotos);
   document.getElementById('evapPressure').addEventListener('input', updateSaturationDisplay);
   document.getElementById('highPressure').addEventListener('input', updateSaturationDisplay);
-  document.getElementById('refrigerant').addEventListener('change', updateSaturationDisplay);
+  document.getElementById('refrigerant').addEventListener('change', evaluateStaticPressure);
+
+
+  // Initial Branding Render
+  renderBranding();
 });
 </script>
 <footer style="text-align: center; margin-top: 40px; font-size: 0.85em; color: #666;">
