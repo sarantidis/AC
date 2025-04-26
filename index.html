@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>❄️ AC_Triage Evaluation Pro v3.9 Beta</title>
+  <title>❄️ AC_Triage Evaluation Pro v3.9a</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -199,7 +199,7 @@ img {
   </div>
   <div style="display: flex; gap: 10px; margin-top: 6px;">
     <div style="width: 200px;">
-      <label style="font-size: 0.9em;">Static Pressure (PSI):</label>
+      <label style="font-weight: bold;font-size: 0.9em;">Static Pressure (PSI):</label>
       <input type="number" id="staticPressure" placeholder="e.g. 94" style="width: 80%;" />
     </div>
   </div>
@@ -210,7 +210,7 @@ img {
 <div style="display: flex; gap: 20px; align-items: flex-end; margin-bottom: 10px;">
 
   <div style="flex: 1;">
-    <label style="font-weight: bold; font-size: 0.9em;">Low-Side Pressure (PSI):</label><br>
+    <label style="font-weight: bold; font-size: 0.9em; color: #0074D9;">Low-Side Pressure (PSI):</label><br>
     <input type="number" id="evapPressure" style="width: 100%;" />
   </div>
 
@@ -631,7 +631,12 @@ function generateConfidenceBreakdown(ventDelta, expectedVentRange, superheat, co
   return `
     <div class="report-section">
       <strong>📊 Confidence Score Breakdown:</strong><br>
-      🌬️ Vent ΔT: ${ventDelta.toFixed(0)}°F – ${ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max ? '✅ Within expected range' : `❌ Expected ${expectedVentRange.min}–${expectedVentRange.max}°F`}<br>
+      const buffer = 2; // forgiving buffer of 2°F
+🌬️ Vent ΔT: ${ventDelta.toFixed(0)}°F – ${
+  ventDelta >= (expectedVentRange.min - buffer) && ventDelta <= (expectedVentRange.max + buffer)
+    ? '✅ Within expected range'
+    : `❌ Expected ${expectedVentRange.min}–${expectedVentRange.max}°F`
+}<br>
       ❄️ Superheat: ${superheat.toFixed(0)}°F – ${superheat >= 10 && superheat <= 15 ? '✅ Optimal' : '❌ Outside optimal range (10–15°F)' }<br>
       🔥 Condenser ΔT: ${condDelta.toFixed(0)}°F – ${condDelta >= 25 ? '✅ Acceptable' : '❌ Low (Target: ≥25°F)' }<br>
       🧪 Fill %: ${fillPercent}% – ${fillPercent >= 98 && fillPercent <= 102 ? '✅ Ideal' : '❌ Deviation from ideal fill'}<br>
@@ -979,12 +984,18 @@ if (diagnosis.includes('CODE-FILL-LOW-01')) {
 
   // Confidence Score
   const expectedVentRange = getExpectedVentDelta(ambient);
-  let score = 0;
-  if (ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max) score++;
-  if (superheat >= 10 && superheat <= 15) score++;
-  if (condDelta >= 25) score++;
-  if (percentFillRaw >= 0.98 && percentFillRaw <= 1.02) score++;
-  if (isProperlyCharged) score++;
+  let buffer = 2;
+if (ambient >= 95) buffer = 3;
+else if (ambient <= 50) buffer = 1;
+
+let score = 0;
+
+// USE BUFFER HERE
+if (ventDelta >= (expectedVentRange.min - buffer) && ventDelta <= (expectedVentRange.max + buffer)) score++;
+if (superheat >= 10 && superheat <= 15) score++;
+if (condDelta >= 25) score++;
+if (percentFillRaw >= 0.98 && percentFillRaw <= 1.02) score++;
+if (isProperlyCharged) score++;
 
   if (diagnosis.includes('CODE-FILL-LOW-01') && ventDelta < 10 && superheat > 25) {
     score = 0;
