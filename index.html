@@ -195,7 +195,7 @@ img {
 
 <div style="margin-bottom: 10px; font-size: 0.95em; color: #0074D9;">
   <div id="staticPressureRangeDisplay">
-     ⏲️ Expected Static Pressure (Engine Off): <em>ambient temp?</em>
+     💨 Expected Static Pressure (Engine Off): <em>ambient temp?</em>
   </div>
   <div style="display: flex; gap: 10px; margin-top: 6px;">
     <div style="width: 200px;">
@@ -538,7 +538,7 @@ function evaluateStaticPressure() {
 
   if (isNaN(staticPSI)) {
     staticDisplay.innerHTML = `
-       ⏲️ Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+       💨 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
       <strong>${range.min.toFixed(0)} – ${range.max.toFixed(0)} psi</strong><br>
       <em>Enter Static Pressure (PSI) to diagnose fill state or contamination.</em>
     `;
@@ -553,7 +553,7 @@ function evaluateStaticPressure() {
   );
 
   staticDisplay.innerHTML = `
-     ⏲️ Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+     💨 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
     <strong>${range.min.toFixed(0)} – ${range.max.toFixed(0)} psi → Static Pressure Tested: ${staticPSI}psi<br>
 <strong>${status}</strong>
   `;
@@ -1055,7 +1055,7 @@ if (isProperlyCharged) score++;
     Relative Humidity: ${isNaN(rh) ? 'N/A' : rh + '%'}<br><br>
 
 <div class="report-section">
-  <strong> ⏲️ Static Pressure Test (Engine Off):</strong><br>
+  <strong> 💨 Static Pressure Test (Engine Off):</strong><br>
   Ambient Temp: ${ambient}°F<br>
   Expected Range: ${staticMin} – ${staticMax} psi<br>
   Measured Static Pressure: ${isNaN(staticPSI) ? 'N/A' : staticPSI + ' psi'}<br>
@@ -1169,10 +1169,10 @@ document.getElementById('refrigerant').addEventListener('change', evaluateStatic
 document.getElementById('staticPressure').addEventListener('input', evaluateStaticPressure);
 document.getElementById('evaluateBtn').addEventListener('click', runEvaluation);
 document.getElementById('downloadBtn').addEventListener('click', downloadPDF);
-  document.getElementById('photos').addEventListener('change', previewPhotos);
-  document.getElementById('evapPressure').addEventListener('input', updateSaturationDisplay);
-  document.getElementById('highPressure').addEventListener('input', updateSaturationDisplay);
-  document.getElementById('refrigerant').addEventListener('change', evaluateStaticPressure);
+document.getElementById('photos').addEventListener('change', previewPhotos);
+document.getElementById('evapPressure').addEventListener('input', updateSaturationDisplay);
+document.getElementById('highPressure').addEventListener('input', updateSaturationDisplay);
+document.getElementById('refrigerant').addEventListener('change', evaluateStaticPressure);
 
 
   // Initial Branding Render
@@ -1180,7 +1180,7 @@ document.getElementById('downloadBtn').addEventListener('click', downloadPDF);
 });
 </script>
 <footer style="text-align: center; margin-top: 40px; font-size: 0.85em; color: #666;">
-  © 2025 A/C System Triage | Peter Sarantidis - Developer - ASE Master Tech - Advanced SME
+  © 2025 A/C System Triage | Peter Sarantidis - Developer - ASE Master Tech - Advanced Level SME
 </footer>
 </body>
 
