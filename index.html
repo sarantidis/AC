@@ -1845,32 +1845,72 @@ document.getElementById("evaluateBtn").addEventListener("click", runEvaluation);
 </script>
 
 <script>
+// A/C Tech Tip Generator with Range-Based Condition Outputs
 function getACTechTip({ superheat, subcooling, fillPercent, ambient, ventTemp, rh }) {
   const sh = parseFloat(superheat);
   const sc = parseFloat(subcooling);
 
-  // Define boundaries (can tune as needed)
-  const SH_LOW = 10, SH_HIGH = 15, SC_LOW = 10, SC_HIGH = 18;
+  // Define superheat & subcooling condition ranges
+  const SH_RANGE = { low: [0, 10], normal: [10, 15], high: [15, Infinity] };
+  const SC_RANGE = { low: [0, 10], normal: [10, 18], high: [18, Infinity] };
 
-  const isLowSH = sh < SH_LOW, isHighSH = sh > SH_HIGH, isNormSH = !isLowSH && !isHighSH;
-  const isLowSC = sc < SC_LOW, isHighSC = sc > SC_HIGH, isNormSC = !isLowSC && !isHighSC;
+  const isInRange = (value, [min, max]) => value >= min && value < max;
 
-  const ventDelta = (typeof ambient === "number" && typeof ventTemp === "number") ? (ambient - ventTemp) : null;
-  const highEvapLoad = (ventDelta !== null && fillPercent >= 95 && fillPercent <= 105 && rh > 60 && ventDelta > 30);
+  const shRange = isInRange(sh, SH_RANGE.low)
+    ? "low"
+    : isInRange(sh, SH_RANGE.normal)
+    ? "normal"
+    : "high";
 
-  if (isHighSH && isLowSC) return "High superheat & low subcooling: Almost always an undercharged system. Confirm refrigerant level, check for leaks.";
-  if (isLowSH && isHighSC) return "Low superheat & high subcooling: Likely an overcharged system. Check for excess refrigerant, restricted evaporator, poor airflow, or non-condensables.";
-  if (isLowSH && isLowSC) return "Low superheat & low subcooling: Overfeeding by metering device (TXV stuck open or oversized orifice). Inspect TXV, orifice, and system flushing needed.";
-  if (isHighSH && isHighSC) return "High superheat & high subcooling: Suggests both a restriction (starved evap) and condenser liquid overload. Acclimate vehicle, check static PSI, and inspect metering device or filter-dryer.";
-  if (isNormSH && isHighSC) return "Normal superheat & high subcooling: Restriction likely in liquid line, near metering device or condenser. Evaporator may not be getting enough refrigerant.";
-  if (isHighSH && isNormSC) return "High superheat & normal subcooling: Refrigerant is too hot leaving the evaporator. Suspect low charge, blockage, or faulty TXV.";
-  if (isLowSH && isNormSC) return "Low superheat & normal subcooling: Evaporator overloaded—risk of flooding compressor. Check for overcharge, poor airflow, or bad metering device.";
-  if (isNormSH && isLowSC) return "Normal superheat & low subcooling: Low charge or receiver restriction, or TXV not sensing properly. Verify charge and TXV operation.";
-  if (highEvapLoad) return "High evaporator load: Large ambient-to-vent delta and high humidity. Ice formation likely—engage recirc mode, check blower speed, cabin filter, and expansion valve operation.";
+  const scRange = isInRange(sc, SC_RANGE.low)
+    ? "low"
+    : isInRange(sc, SC_RANGE.normal)
+    ? "normal"
+    : "high";
 
-  return "No classic refrigerant pressure imbalance detected in the A/C system. Confirm all values and recheck system balance.";
+  const ventDelta =
+    typeof ambient === "number" && typeof ventTemp === "number"
+      ? ambient - ventTemp
+      : null;
+
+  const highEvapLoad =
+    ventDelta !== null &&
+    fillPercent >= 95 &&
+    fillPercent <= 105 &&
+    rh > 60 &&
+    ventDelta > 30;
+
+  if (shRange === "high" && scRange === "low")
+    return "High superheat (>15°F) & low subcooling (<10°F): Almost always an undercharged system. Confirm refrigerant level, check for leaks.";
+
+  if (shRange === "low" && scRange === "high")
+    return "Low superheat (<10°F) & high subcooling (>18°F): Likely overcharge. Check for excess refrigerant, poor airflow, or restricted evaporator.";
+
+  if (shRange === "low" && scRange === "low")
+    return "Low superheat (<10°F) & low subcooling (<10°F): TXV stuck open or oversized orifice. May need system flushing or metering device inspection.";
+
+  if (shRange === "high" && scRange === "high")
+    return "High superheat (>15°F) & high subcooling (>18°F): Likely restriction and liquid overload. Inspect filter-dryer or metering device.";
+
+  if (shRange === "normal" && scRange === "high")
+    return "Normal superheat (10–15°F) & high subcooling (>18°F): Liquid line restriction likely. Inspect metering device and condenser outlet.";
+
+  if (shRange === "high" && scRange === "normal")
+    return "High superheat (>15°F) & normal subcooling (10–18°F): TXV not feeding enough refrigerant. Could be low charge or evaporator blockage.";
+
+  if (shRange === "low" && scRange === "normal")
+    return "Low superheat (<10°F) & normal subcooling (10–18°F): Evaporator may be overfed—risk of compressor flooding. Check metering device and airflow.";
+
+  if (shRange === "normal" && scRange === "low")
+    return "Normal superheat (10–15°F) & low subcooling (<10°F): TXV sensing issue or undercharge. Verify refrigerant quantity and TXV bulb contact.";
+
+  if (highEvapLoad)
+    return "High evaporator load: Large ambient-to-vent delta (>30°F) and high humidity. Risk of icing. Engage recirc mode, inspect blower, cabin filter, and TXV.";
+
+  return "No classic imbalance detected. Verify sensor input accuracy and check for intermittent system imbalance or TXV delay.";
 }
 </script>
+
 
 <Script>
 
