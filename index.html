@@ -1970,10 +1970,7 @@ function buildAutotechPrompt(rawReport, flagBlock, customer, vehicle) {
 }
 
 </script>
-
-
- <script>
-
+<script>
 function formatChatText(raw) {
   // Remove branding if present
   let cleaned = raw.replace(/^A\/C Triage by Autotech Intelligence\s*\n?/i, "");
@@ -2120,7 +2117,6 @@ function cleanAssistantReply(raw) {
   return uniqueLines.join('\n\n'); // adds spacing between distinct lines
 }
 
-<script>
   function formatBotReply(reply) {
     return reply
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // bold titles
