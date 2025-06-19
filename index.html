@@ -1924,8 +1924,8 @@ function getACTechTip({ superheat, subcooling, fillPercent, ambient, ventTemp, r
   const sc = parseFloat(subcooling);
 
   // Define superheat & subcooling condition ranges
-  const SH_RANGE = { low: [0, 10], normal: [10, 15], high: [15, Infinity] };
-  const SC_RANGE = { low: [0, 10], normal: [10, 18], high: [18, Infinity] };
+  const SH_RANGE = { low: [0, 9], normal: [10, 15], high: [16, Infinity] };
+  const SC_RANGE = { low: [0, 9], normal: [10, 20], high: [21, Infinity] };
 
   const isInRange = (value, [min, max]) => value >= min && value < max;
 
