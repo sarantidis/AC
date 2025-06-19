@@ -1953,34 +1953,34 @@ function getACTechTip({ superheat, subcooling, fillPercent, ambient, ventTemp, r
     rh > 60 &&
     ventDelta > 30;
 
-  if (shRange === "high" && scRange === "low")
-    return "High superheat (>15°F) & low subcooling (<10°F): Almost always an undercharged system. Confirm refrigerant level, check for leaks.";
-
-  if (shRange === "low" && scRange === "high")
-    return "Low superheat (<10°F) & high subcooling (>20°F): Likely overcharge. Check for excess refrigerant, poor airflow, or restricted evaporator.";
-
-  if (shRange === "low" && scRange === "low")
-    return "Low superheat (<10°F) & low subcooling (<10°F): TXV stuck open or oversized orifice. May need system flushing or metering device inspection.";
-
-  if (shRange === "high" && scRange === "high")
-    return "High superheat (>15°F) & high subcooling (>20°F): Likely restriction and liquid overload. Inspect filter-dryer or metering device.";
-
-  if (shRange === "normal" && scRange === "high")
-    return "Normal superheat (10–15°F) & high subcooling (>20°F): Liquid line restriction likely. Inspect metering device and condenser outlet.";
-
-  if (shRange === "high" && scRange === "normal")
-    return "High superheat (>15°F) & normal subcooling (5–20°F): TXV not feeding enough refrigerant. Could be low charge or evaporator blockage.";
-
-  if (shRange === "low" && scRange === "normal")
-    return "Low superheat (<10°F) & normal subcooling (5–20°F): Evaporator may be overfed—risk of compressor flooding. Check metering device and airflow.";
-
-  if (shRange === "normal" && scRange === "low")
-    return "Normal superheat (10–15°F) & low subcooling (<5°F): TXV sensing issue or undercharge. Verify refrigerant quantity and TXV bulb contact.";
-
   if (highEvapLoad)
-    return "High evaporator load: Large ambient-to-vent delta (>30°F) and high humidity. Risk of icing. Engage recirc mode, inspect blower, cabin filter, and TXV.";
+  return "High evaporator load: Large ambient-to-vent delta (>30°F) and high humidity. Risk of icing. Engage recirc mode, inspect blower, cabin filter, and TXV.";
 
-  return "No classic imbalance detected. Verify sensor input accuracy and check for intermittent system imbalance or TXV delay.";
+if (shRange === "high" && scRange === "low")
+  return "High superheat (>15°F) & low subcooling (<10°F): Almost always an undercharged system. Confirm refrigerant level, check for leaks.";
+
+if (shRange === "low" && scRange === "high")
+  return "Low superheat (<10°F) & high subcooling (>20°F): Likely overcharge. Check for excess refrigerant, poor airflow, or restricted evaporator.";
+
+if (shRange === "low" && scRange === "low")
+  return "Low superheat (<10°F) & low subcooling (<10°F): TXV stuck open or oversized orifice. May need system flushing or metering device inspection.";
+
+if (shRange === "high" && scRange === "high")
+  return "High superheat (>15°F) & high subcooling (>20°F): Likely restriction and liquid overload. Inspect filter-dryer or metering device.";
+
+if (shRange === "normal" && scRange === "high")
+  return "Normal superheat (10–15°F) & high subcooling (>20°F): Possible restriction or mild overcharge. Check metering device, condenser outlet, and verify charge accuracy.";
+
+if (shRange === "high" && scRange === "normal")
+  return "High superheat (>15°F) & normal subcooling (10–20°F): TXV not feeding enough refrigerant. Could be low charge or evaporator blockage.";
+
+if (shRange === "low" && scRange === "normal")
+  return "Low superheat (<10°F) & normal subcooling (10–20°F): Evaporator may be overfed—risk of compressor flooding. Check metering device and airflow.";
+
+if (shRange === "normal" && scRange === "low")
+  return "Normal superheat (10–15°F) & low subcooling (<10°F): TXV sensing issue or undercharge. Verify refrigerant quantity and TXV bulb contact.";
+
+return "No classic imbalance detected. Verify sensor input accuracy and check for intermittent system imbalance or TXV delay.";
 }
 </script>
 
