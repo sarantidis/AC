@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>❄️ A/C Triage Pro v3.9X Working beta</title>
+  <title>❄️ A/C Triage Pro v3.9.1 Working beta</title>
   <style>
 label {
   font-weight: bold !important;
@@ -599,7 +599,7 @@ label {
 
   <div class="button-group" style="margin-top: 16px;">
     <button id="evaluateBtn">Dynamic Testing</button>
-    
+    <button id="printBtn">🖨️ Print / Save as PDF 📄</button>
   </div>
 
 
@@ -1316,26 +1316,33 @@ document.getElementById("testStage").addEventListener("change", function () {
       }
     }
 
-    // ─── Condenser Heat Rejection ΔT expectations ────────────────────────────────────────────
-    function getExpectedCondDelta(ambient, rh, mode = "ir-shiny", refrigerant = "r134a") {
-      let range = { min: 0, max: 0 };
-      if (ambient <= 70) {
-        range = rh >= 70 ? { min: 18, max: 28 } : { min: 15, max: 25 };
-      } else if (ambient <= 85) {
-        range = rh >= 70 ? { min: 20, max: 30 } : { min: 18, max: 28 };
-      } else if (ambient <= 95) {
-        range = rh >= 70 ? { min: 22, max: 32 } : { min: 20, max: 30 };
-      } else {
-        range = rh >= 70 ? { min: 24, max: 34 } : { min: 22, max: 32 };
-      }
-      if (mode === "ir-shiny") {
-        range.min += 5; range.max += 5;
-      }
-      if (refrigerant.toLowerCase() === "r1234yf") {
-        range.min -= 1; range.max -= 1;
-      }
-      return range;
-    }
+// ─── Condenser Heat Rejection ΔT expectations ──────────────────────────────────────────── 
+function getExpectedCondDelta(ambient, rh, mode = "ir-shiny", refrigerant = "r134a") {
+  let range = { min: 10, max: 20 };
+
+  if (ambient <= 70) {
+    range = rh >= 70 ? { min: 12, max: 22 } : { min: 10, max: 20 };
+  } else if (ambient <= 85) {
+    range = rh >= 70 ? { min: 13, max: 23 } : { min: 11, max: 21 };
+  } else if (ambient <= 95) {
+    range = rh >= 70 ? { min: 14, max: 24 } : { min: 12, max: 22 };
+  } else {
+    range = rh >= 70 ? { min: 15, max: 25 } : { min: 13, max: 23 };
+  }
+
+  if (mode === "ir-shiny") {
+    range.min += 5;
+    range.max += 5;
+  }
+
+  if (refrigerant.toLowerCase() === "r1234yf") {
+    range.min -= 1;
+    range.max -= 1;
+  }
+
+  return range;
+}
+
 
     // ─── Diagnostic Bar Rendering ─────────────────────────────────────────────
     function renderDiagnosticBar(containerId, label, actualValue, targetMin, targetMax, unit = "", maxVisualRange = null, mode = "") {
@@ -1927,8 +1934,7 @@ function getACTechTip({ superheat, subcooling, fillPercent, ambient, ventTemp, r
   const SH_RANGE = { low: [0, 9], normal: [10, 15], high: [16, Infinity] };
   const SC_RANGE = { low: [0, 9], normal: [10, 20], high: [21, Infinity] };
 
-  const isInRange = (value, [min, max]) => value >= min && value < max;
-
+  const isInRange = (value, [min, max]) => value >= min && value <= max;
   const shRange = isInRange(sh, SH_RANGE.low)
     ? "low"
     : isInRange(sh, SH_RANGE.normal)
@@ -1980,7 +1986,7 @@ if (shRange === "low" && scRange === "normal")
 if (shRange === "normal" && scRange === "low")
   return "Normal superheat (10–15°F) & low subcooling (<10°F): TXV sensing issue or undercharge. Verify refrigerant quantity and TXV bulb contact.";
 
-return "No classic imbalance detected. Verify sensor input accuracy and check for intermittent system imbalance or TXV delay.";
+return "The A/C system isn’t showing any typical signs of a refrigerant flow problem. If the original concern isn’t active anymore, everything appears to be working as it should right now.";
 }
 </script>
 
