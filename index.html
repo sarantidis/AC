@@ -125,7 +125,12 @@ label {
       #brandingHeader img { max-height: 32px; }
     }
     .report-section { margin: 12px 0; padding: 12px; background: #fafcff; border-radius: 8px; }
-    .metric-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+  
+  .metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
     .metric-bar { flex: 1; min-width: 160px; background: #eee; border-radius: 8px; padding: 6px 0; text-align: center; }
     footer { font-size: 0.85em; color: #666; text-align: center; margin-top: 40px; }
 
@@ -499,7 +504,6 @@ label {
       </select>
     </div>
   </div>
-</div>
 
     <button id="testPointHelpBtn" style="font-size: 0.85em; margin-top: 8px;">🤔 Temperature Test Points?</button>
 
@@ -580,7 +584,6 @@ label {
     <div id="testPointHelpBlock" style="display: none; margin-top: 8px;">
       <button id="testPointHelpBtn2" style="font-size: 0.85em;">🤔 Temperature Test Points?</button>
     </div>
-  </div>
 
   <div class="form-row" style="margin-top: 12px;">
     <div class="form-cell">
@@ -596,22 +599,28 @@ label {
       <div id="photoPreview" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
     </div>
   </div>
-
+</div>
   <div class="button-group" style="margin-top: 16px;">
     <button id="evaluateBtn">Dynamic Testing</button>
-    <button id="printBtn">🖨️ Print / Save as PDF 📄</button>
-  </div>
+    <button id="printBtn">🖨️ Print</button>
+    <button id="downloadBtn" onclick="downloadPDF()">Save as PDF 📄</button>
+
+
+</div>
 
 
   <div id="output" class="result"></div>
 
   <div class="metric-grid">
     <div id="ventDeltaBar" class="metric-bar"></div>
-    <div id="fillBar" class="metric-bar"></div>
     <div id="condenserDeltaBar" class="metric-bar"></div>
-    <div id="superheatBar" class="metric-bar"></div>
+    
+
+<div id="superheatBar" class="metric-bar"></div>
     <div id="subcoolingBar" class="metric-bar"></div>
     <div id="compressionBar" class="metric-bar"></div>
+    <div id="fillBar" class="metric-bar"></div>
+    <!-- <div id="chargeDiffBar" class="metric-bar"></div> -->
   </div>
 
  
@@ -1031,7 +1040,7 @@ document.getElementById("testStage").addEventListener("change", function () {
         return;
       }
       // Undercharged
-      if (staticPSI < range.min) {
+      if (staticPSI < range.min -1 ) {
         staticDisplay.innerHTML = `
           🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
           <strong>${range.min.toFixed(0)} ~ ${range.max.toFixed(0)} psi</strong><br>
@@ -1345,7 +1354,7 @@ function getExpectedCondDelta(ambient, rh, mode = "ir-shiny", refrigerant = "r13
 
 
     // ─── Diagnostic Bar Rendering ─────────────────────────────────────────────
-    function renderDiagnosticBar(containerId, label, actualValue, targetMin, targetMax, unit = "", maxVisualRange = null, mode = "") {
+function renderDiagnosticBar(containerId, label, actualValue, targetMin, targetMax, unit = "", maxVisualRange = null, mode = "") {
       const container = document.getElementById(containerId);
       if (!container) return;
       const maxValue = maxVisualRange || targetMax * 1.5;
@@ -1382,35 +1391,108 @@ function getExpectedCondDelta(ambient, rh, mode = "ir-shiny", refrigerant = "r13
       `;
     }
 
-    function updateDiagnosticBars(params) {
-      const {
-        ambient, rh, ventDelta, expectedVentRange,
-        fillPercent, condRejectionDelta, superheat, subcooling,
-        refrigerant, compressionRatio, highRatioThreshold
-      } = params;
-      const tempSourceMode = document.getElementById("tempSource").value || "ir-shiny";
-      const condRange = getExpectedCondDelta(ambient, rh, tempSourceMode, refrigerant);
+function updateDiagnosticBars(params) {
+  const {
+    ambient,
+    rh,
+    ventDelta,
+    expectedVentRange,
+    condRejectionDelta,
+    refrigerant,
+    superheat,
+    subcooling,
+    compressionRatio,
+    highRatioThreshold,
+    fillPercent,
+    chargeDiff,
+    chargeDiffUnit,
+    chargeTolerance
+  } = params;
 
-      renderDiagnosticBar("ventDeltaBar", "🌬️ Vent ΔT", Math.round(ventDelta),
-        Math.round(expectedVentRange.min), Math.round(expectedVentRange.max), "°F");
+  // 0) hide the standalone Charge Δ bar
+  const chargeBar = document.getElementById("chargeDiffBar");
+  if (chargeBar) chargeBar.style.display = "none";
 
-      renderDiagnosticBar("fillBar", "🧪 Estimated Fill %", Math.round(fillPercent),
-        95, 105, "%", 110);
+  // 1) Vent ΔT
+  renderDiagnosticBar(
+    "ventDeltaBar",
+    "🌬️ Vent ΔT",
+    Math.round(ventDelta),
+    Math.round(expectedVentRange.min),
+    Math.round(expectedVentRange.max),
+    "°F"
+  );
 
-      renderDiagnosticBar("superheatBar", "❄️ Superheat", Math.round(superheat),
-        10, 15, "°F");
+  // 2) Estimated Fill % + inline charge Δ
+  const pct     = Math.round(fillPercent);                   // e.g. 98
+  const devPct  = pct - 100;                                 // e.g. -2
+  const ozDiff  = parseFloat(chargeDiff.toFixed(1));         // e.g. -1.6
+  const unitLbl = chargeDiffUnit || document.getElementById("chargeUnit").value;
 
-      renderDiagnosticBar("subcoolingBar", "🧊 Subcooling", Math.round(subcooling),
-        5, refrigerant === "r1234yf" ? 18 : 20, "°F");
+  // Draw the Fill % bar exactly as normal
+  renderDiagnosticBar(
+    "fillBar",
+    "🧪 Estimated Fill %",
+    pct,
+    95,
+    105,
+    "%",
+    110
+  );
 
-      renderDiagnosticBar("condenserDeltaBar", "🔥 Condenser Heat Rejection", Math.round(condRejectionDelta),
-        Math.round(condRange.min), Math.round(condRange.max), "°F", null, tempSourceMode);
+  // Then patch its “(Target:… Δ:…)” text
+  const fillBarEl = document.getElementById("fillBar");
+  const rangeEl   = fillBarEl.querySelector(".metric-range");
+  if (rangeEl) {
+    rangeEl.textContent =
+      `(Target: 95–105%, Δ: ${devPct}% or ${ozDiff}${unitLbl})`;
+  }
 
-      renderDiagnosticBar("compressionBar", "📈 Compression Ratio", Math.round(compressionRatio || 0),
-        2.5, highRatioThreshold);
-    }
+  // 3) Superheat
+  renderDiagnosticBar(
+    "superheatBar",
+    "❄️ Superheat",
+    Math.round(superheat),
+    10,
+    15,
+    "°F"
+  );
 
-    // ─── Generate Confidence Breakdown & Customer Summary Prompt Flags ───────
+  // 4) Subcooling
+  renderDiagnosticBar(
+    "subcoolingBar",
+    "🧊 Subcooling",
+    Math.round(subcooling),
+    5,
+    refrigerant === "r1234yf" ? 18 : 20,
+    "°F"
+  );
+
+  // 5) Condenser Heat Rejection
+  const condRange = getExpectedCondDelta(ambient, rh, document.getElementById("tempSource").value, refrigerant);
+  renderDiagnosticBar(
+    "condenserDeltaBar",
+    "🔥 Condenser Heat Rejection",
+    Math.round(condRejectionDelta),
+    Math.round(condRange.min),
+    Math.round(condRange.max),
+    "°F",
+    null,
+    document.getElementById("tempSource").value
+  );
+
+  // 6) Compression Ratio
+  renderDiagnosticBar(
+    "compressionBar",
+    "📈 Compression Ratio",
+    Math.round(compressionRatio || 0),
+    2.5,
+    highRatioThreshold
+  );
+}
+
+
+// ─── Generate Confidence Breakdown & Customer Summary Prompt Flags ───────
     function generateConfidenceBreakdown(
       ambient,
       rh,
@@ -1524,50 +1606,82 @@ function getExpectedCondDelta(ambient, rh, mode = "ir-shiny", refrigerant = "r13
 
 
 // ─── Evaporator Load condition ──────────────────────────────────
+	// ΔT > 30°F & proper charge & humidity high ⇒ heavy evaporator load	
 function detectEvaporatorLoadHigh({ ambient, ventTemp, fillPercent, rh }) {
-  // ΔT > 30°F & proper charge & humidity high ⇒ heavy evaporator load
-  const ventDelta      = ambient - ventTemp;
-  const properlyCharged = fillPercent >= 95 && fillPercent <= 105;
-  return ventDelta > 30 && properlyCharged && rh > 60;
+  	const ventDelta      = ambient - ventTemp;
+  	const properlyCharged = fillPercent >= 95 && fillPercent <= 105;
+  	return ventDelta > 30 && properlyCharged && rh > 60;
 }
+
+// ─── Unit conversion helper ───────────────────────────────────────────
+	/**
+ 	* Convert a refrigerant quantity between oz, lb, and g.
+ 	* @param  {number} value    The quantity to convert.
+ 	* @param  {string} fromUnit 'oz' | 'lb' | 'g'
+ 	* @param  {string} toUnit   'oz' | 'lb' | 'g'
+ 	* @returns {number}
+ 	*/
+function convertRefrigerant(value, fromUnit, toUnit) {
+	let oz;
+  	switch (fromUnit) {
+    	case 'lb': oz = value * 16; break;
+    	case 'g':  oz = value / 28.3495; break;
+    	default:   oz = value;        break; // 'oz'
+  }
+  	switch (toUnit) {
+    	case 'lb': return oz / 16;
+    	case 'g':  return oz * 28.3495;
+    	default:   return oz;         // 'oz'
+  }
+}
+
+// ─── Calculate Charge difference ──────────────────────────────────
+function calculateChargeDifference(factoryCharge, fillPercent, unit = 'oz') {
+	const factoryOz = convertRefrigerant(factoryCharge, unit, 'oz');
+	const actualOz  = (fillPercent / 100) * factoryOz;
+	const diffOz    = actualOz - factoryOz;
+	const diffUnit  = convertRefrigerant(diffOz, 'oz', unit);
+	 return { diff: diffUnit, unit };   // ← this return is required!
+}
+
 
 // ─── runEvaluation (static & dynamic) ──────────────────────────────────
 function runEvaluation() {
-  // 1) Require RO or Customer
-  const roVal = document.getElementById("ro").value.trim();
-  const customerVal = document.getElementById("customer").value.trim();
-  if (!roVal && !customerVal) {
-    ["ro", "customer"].forEach(flashField);
-    alert("Please enter either RO# or Customer Name before proceeding.");
-    return;
+	// 1) Require RO or Customer
+  	const roVal = document.getElementById("ro").value.trim();
+  	const customerVal = document.getElementById("customer").value.trim();
+  	if (!roVal && !customerVal) {
+    	["ro", "customer"].forEach(flashField);
+    	alert("Please enter either RO# or Customer Name before proceeding.");
+    	return;
   }
-  // 2) Require VIN or Vehicle
-  const vinVal = document.getElementById("vin").value.trim();
-  const vehicleVal = document.getElementById("vehicle").value.trim();
-  if (!vinVal && !vehicleVal) {
-    ["vin", "vehicle"].forEach(flashField);
-    alert("Please enter either VIN or Year-Make-Model before proceeding.");
-    return;
+	// 2) Require VIN or Vehicle
+  	const vinVal = document.getElementById("vin").value.trim();
+  	const vehicleVal = document.getElementById("vehicle").value.trim();
+  	if (!vinVal && !vehicleVal) {
+    	["vin", "vehicle"].forEach(flashField);
+    	alert("Please enter either VIN or Year-Make-Model before proceeding.");
+    	return;
   }
   // 3) Require ZIP or Ambient
-  const zipVal = document.getElementById("zipCode").value.trim();
-  const ambientStr = document.getElementById("ambient").value.trim();
-  if (!zipVal && !ambientStr) {
-    ["zipCode", "ambient"].forEach(flashField);
-    alert("Please enter either ZIP Code or Ambient Temperature before proceeding.");
-    return;
+  	const zipVal = document.getElementById("zipCode").value.trim();
+  	const ambientStr = document.getElementById("ambient").value.trim();
+  	if (!zipVal && !ambientStr) {
+    	["zipCode", "ambient"].forEach(flashField);
+   	alert("Please enter either ZIP Code or Ambient Temperature before proceeding.");
+    	return;
   }
   // 4) Static Pressure
-  if (!requireField("staticPressure", "Static Pressure (PSI)")) return;
-  const refrigerantVal = document.getElementById("refrigerant").value;
-  const ambientNum = parseFloat(ambientStr);
-  const staticPSI = parseFloat(document.getElementById("staticPressure").value);
-  const staticRange = getStaticPressureRange(ambientNum, refrigerantVal);
-  if (staticPSI < staticRange.min) {
-    if (!confirm(
-      `Static PSI ${staticPSI} is below expected (${staticRange.min.toFixed(0)} psi).\n\nOK = Continue to dynamic testing.\nCancel = STOP and recover/recharge to factory specs.`
+  	if (!requireField("staticPressure", "Static Pressure (PSI)")) return;
+  	const refrigerantVal = document.getElementById("refrigerant").value;
+  	const ambientNum = parseFloat(ambientStr);
+  	const staticPSI = parseFloat(document.getElementById("staticPressure").value);
+  	const staticRange = getStaticPressureRange(ambientNum, refrigerantVal);
+  	if (staticPSI < staticRange.min) {
+    	if (!confirm(
+      	`Static PSI ${staticPSI} is below expected (${staticRange.min.toFixed(0)} psi).\n\nOK = Continue to dynamic testing.\nCancel = STOP and 	recover/recharge to factory specs.`
     )) {
-      document.getElementById("output").innerHTML = `
+      	document.getElementById("output").innerHTML = `
         <div class="report-section">
           <strong>❌ Undercharged System:</strong><br>
           Static PSI ${staticPSI} psi is below the ${staticRange.min.toFixed(0)} psi minimum.<br>
@@ -1576,12 +1690,12 @@ function runEvaluation() {
       return;
     }
   }
-  document.getElementById("advancedFieldsWrapper").style.display = "block";
-  if (!requireField("factoryCharge", "Factory Charge (oz)")) return;
+  	document.getElementById("advancedFieldsWrapper").style.display = "block";
+  	if (!requireField("factoryCharge", "Factory Charge (oz)")) return;
   // 5) High-Side Pressure
-  if (!requireField("highPressure", "High-Side Pressure (PSI)")) return;
+  	if (!requireField("highPressure", "High-Side Pressure (PSI)")) return;
   // 6) Center Vent Temp
-  if (!requireField("vent", "Center Vent Temp (°F)")) return;
+  	if (!requireField("vent", "Center Vent Temp (°F)")) return;
 
   // ─── Gather dynamic inputs ─────────────────────────────────────────
   const ventTemp = parseFloat(document.getElementById("vent").value);
@@ -1591,7 +1705,7 @@ function runEvaluation() {
   const condOutlet = parseFloat(document.getElementById("outlet").value);
   const tempAtTXV = parseFloat(document.getElementById("tempAtTXV").value);
   let factoryCharge = parseFloat(document.getElementById("factoryCharge").value);
-  const unit = document.getElementById("chargeUnit").value;
+  
   const techNotes = document.getElementById("techNotes").value;
   const testStage = document.getElementById("testStage").value;
   const rh = parseFloat(document.getElementById("rh").value || 0);
@@ -1613,7 +1727,12 @@ function runEvaluation() {
   const expectedCondSat = ambientNum + 25;
   const percentFillRaw = condSat / expectedCondSat;
   const fillPercent = Math.round(percentFillRaw * 100);
-  const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
+  const unit = document.getElementById("chargeUnit").value;
+  const { diff: chargeDiff, unit: chargeUnit } =
+      calculateChargeDifference(factoryCharge, fillPercent, unit);
+
+
+const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
   const tpDeltaResult = evaluateTPDelta(ambientNum, condOutlet, tempAtTXV, tempSourceMode);
   const evapResult = evaluateEvapTempDifferential(evapSat, evapOutlet, evapTempSrc, rh);
   const isVDC = compressorType.toLowerCase().includes("vdc");
@@ -1647,7 +1766,9 @@ function runEvaluation() {
     chargeDiffDisplay = `<br>🧪 <strong>Charge Difference:</strong> <span style="color: #0074D9;">
         ${Math.abs(displayVal)} ${displayUnit} ${direction}
       </span>`;
-  }
+   }
+
+// 📍const { diff: chargeDiff, unit: chargeUnit } = calculateChargeDifference( factoryCharge,  fillPercent,   unit );
 
   const subLow = refrigerantVal === "r1234yf" ? 5 : 5;
   const subHigh = refrigerantVal === "r1234yf" ? 18 : 20;
@@ -1656,19 +1777,19 @@ function runEvaluation() {
     superheat >= 10 && superheat <= 15 &&
     subcooling >= subLow && subcooling <= subHigh;
 
-  // Superheat status string
+  // 📍Superheat status string FIX to check Vent air blockage 
   let superheatStatus = "";
-  if (superheat > 15) {
+  if (superheat > 15.1) {
     superheatStatus = "❌ Superheat High (>15°F) – Restriction suspected.";
-  } else if (superheat < 10) {
+  } else if (superheat < 9.9) {
     superheatStatus = "❌ Superheat Low (<10°F) – TXV overfeeding suspected.";
   } else if (superheat >= 10 && superheat <= 15 && percentFillRaw >= 0.95 && percentFillRaw <= 1.05) {
     superheatStatus = "✅ TXV working in range.";
   } else if (superheat >= 10 && superheat <= 15 && !isProperlyCharged) {
     if (isVDC) {
-      superheatStatus = "⚠️ Evaporator temp normal, but charge/balance is off. Variable-displacement compressor is masking a real charge issue.";
+      superheatStatus = " Double check Evaporator Temp Sensor (ETS) performance for accuracy.";
     } else {
-      superheatStatus = "⚠️ Evaporator temp looks normal, but something else isn’t right. Check charge, airflow, and other performance issues.";
+      superheatStatus = " Evaporator temp looks normal, but something else isn’t right. Check charge, airflow, and other performance issues.";
     }
   }
 
@@ -1857,31 +1978,34 @@ function runEvaluation() {
     )}
 
     <div class="metric-grid">
-      <div id="ventDeltaBar" class="metric-bar"></div>
-      <div id="fillBar" class="metric-bar"></div>
-      <div id="condenserDeltaBar" class="metric-bar"></div>
-      <div id="superheatBar" class="metric-bar"></div>
-      <div id="subcoolingBar" class="metric-bar"></div>
-      <div id="compressionBar" class="metric-bar"></div>
-    </div>
+    <!-- Row 1 -->
+    <div id="ventDeltaBar"      class="metric-bar"></div>
+    <div id="condenserDeltaBar" class="metric-bar"></div>
+    <div id="compressionBar"    class="metric-bar"></div>
+
+    <!-- Row 2 -->
+    <div id="fillBar"       class="metric-bar"></div>
+    <div id="superheatBar"  class="metric-bar"></div>
+    <div id="subcoolingBar" class="metric-bar"></div>
+  </div>
     ${techNotes ? `<div class="report-section"><strong>Technician Notes:</strong><br>${techNotes.replace(/\n/g, "<br>")}</div>` : ""}
     ${attachedImages.map(src => `<img src="${src}" style="max-width:150px; margin-top:10px;" />`).join("")}
   `;
 
   // ─── Update diagnostic bars ───────────────────────────────────────
   updateDiagnosticBars({
-    ambient: ambientNum,
-    rh,
-    ventDelta,
-    expectedVentRange,
-    fillPercent,
-    condRejectionDelta,
-    superheat,
-    subcooling,
-    refrigerant: refrigerantVal,
-    compressionRatio,
-    highRatioThreshold
-  });
+    	ambient: ambientNum, rh,
+    	ventDelta, expectedVentRange,
+    	condRejectionDelta,
+    	refrigerant: refrigerantVal,    
+    	superheat, subcooling,
+    	compressionRatio, highRatioThreshold,
+	fillPercent, 
+	chargeDiff, 
+	chargeDiffUnit: 
+	chargeUnit,  
+	chargeTolerance: 2
+});
 
   // ─── Store latest report for chat widget ───────────────────────────
   window.latestReportText = stripHTML(document.getElementById("output").innerHTML);
@@ -1925,7 +2049,9 @@ document.getElementById("evaluateBtn").addEventListener("click", runEvaluation);
 </script>
 
 <script>
+
 // A/C Tech Tip Generator with Range-Based Condition Outputs
+
 function getACTechTip({ superheat, subcooling, fillPercent, ambient, ventTemp, rh }) {
   const sh = parseFloat(superheat);
   const sc = parseFloat(subcooling);
@@ -1996,7 +2122,10 @@ return "The A/C system isn’t showing any typical signs of a refrigerant flow p
 // ─── DOWNLOAD PDF ─────────────────────────────────────────────────────
 async function downloadPDF() {
   const reportEl = document.getElementById("output");
-  if (!reportEl) return;
+  if (!reportEl || !reportEl.innerHTML.trim()) {
+    alert("Please run Dynamic Testing first before saving to PDF.");
+    return;
+  }
 
   const downloadBtn = document.getElementById("downloadBtn");
   if (downloadBtn) {
