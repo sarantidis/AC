@@ -252,7 +252,35 @@ label {
       padding: 0.5rem;
     }
 
-  </style>
+  /* Tooltip container, relative so the popup can position itself */
+  .tooltip {
+    position: relative;
+    cursor: pointer;
+  }
+
+  /* Hidden by default */
+  .tooltip-content {
+    display: none;
+    position: absolute;
+    top: -8px;            /* slightly above the bar */
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 8px;
+    border-radius: 4px;
+    width: 240px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 10;
+    font-size: 0.9em;
+    text-align: left;
+  }
+
+  /* When the container has .show, we reveal it */
+  .tooltip.show .tooltip-content {
+    display: block;
+  }
+</style>
 
 
   <!-- html2canvas, jspdf, html2pdf -->
@@ -604,26 +632,11 @@ label {
     <button id="evaluateBtn">Dynamic Testing</button>
     <button id="printBtn">🖨️ Print</button>
     <button id="downloadBtn" onclick="downloadPDF()">Save as PDF 📄</button>
-
-
 </div>
-
 
   <div id="output" class="result"></div>
 
-  <div class="metric-grid">
-    <div id="ventDeltaBar" class="metric-bar"></div>
-    <div id="condenserDeltaBar" class="metric-bar"></div>
-    
 
-<div id="superheatBar" class="metric-bar"></div>
-    <div id="subcoolingBar" class="metric-bar"></div>
-    <div id="compressionBar" class="metric-bar"></div>
-    <div id="fillBar" class="metric-bar"></div>
-    <!-- <div id="chargeDiffBar" class="metric-bar"></div> -->
-  </div>
-
- 
 
   <footer style="text-align: center; margin-top: 40px; font-size: 0.85em; color: #666;">
     ©2025 Peter Sarantidis – ❄️ A/C Triage Pro v3.9 X βeta – ASE Master Tech – Advanced SME
@@ -1491,7 +1504,6 @@ function updateDiagnosticBars(params) {
   );
 }
 
-
 // ─── Generate Confidence Breakdown & Customer Summary Prompt Flags ───────
     function generateConfidenceBreakdown(
       ambient,
@@ -1791,7 +1803,8 @@ const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
     } else {
       superheatStatus = " Evaporator temp looks normal, but something else isn’t right. Check charge, airflow, and other performance issues.";
     }
-  }
+}
+
 
   // ─── Build promptFlags for “Ask Autotech” ─────────────────────────────
   let chargeStatus = "balanced";
@@ -1977,16 +1990,124 @@ const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
       document.getElementById("expansionDevice").value
     )}
 
-    <div class="metric-grid">
-    <!-- Row 1 -->
-    <div id="ventDeltaBar"      class="metric-bar"></div>
-    <div id="condenserDeltaBar" class="metric-bar"></div>
-    <div id="compressionBar"    class="metric-bar"></div>
+<div class="metric-grid">
 
-    <!-- Row 2 -->
-    <div id="fillBar"       class="metric-bar"></div>
-    <div id="superheatBar"  class="metric-bar"></div>
+  <!-- 🌬️ Vent ΔT -->
+  <div class="tooltip">
+    <div id="ventDeltaBar" class="metric-bar"></div>
+    <div class="tooltip-content">
+      <strong>Vent ΔT (Air Cooling Drop)</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>Too Small:</strong> Vent isn’t cold enough – likely poor airflow (dirty filter or wrong vent door).</li>
+        <li><strong>Just Right:</strong> Airflow and heat removal are on point.</li>
+        <li><strong>Too Big:</strong> Could be overcharged or recirculation-door stuck.</li>
+      </ul>
+      <strong>Quick Tips & Pitfalls</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li>Always run blower on MAX when measuring.</li>
+        <li>Double-check fresh-air vs recirc mode.</li>
+        <li>Let it run 2–3 minutes under full load before reading.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 🔥 Condenser ΔT -->
+  <div class="tooltip">
+    <div id="condenserDeltaBar" class="metric-bar"></div>
+    <div class="tooltip-content">
+      <strong>Condenser ΔT (Condenser Cooling Drop)</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>Too Small:</strong> Low refrigerant or blocked condenser airflow.</li>
+        <li><strong>Just Right:</strong> Condenser dumping heat correctly.</li>
+        <li><strong>Too Big:</strong> Overcharged or fans blowing too hard.</li>
+      </ul>
+      <strong>Quick Tips & Pitfalls</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li>If ambient is low, measure right after fan kicks on.</li>
+        <li>Keep hoses and gauges away from engine heat soak.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 📈 Compression Ratio -->
+  <div class="tooltip">
+    <div id="compressionBar" class="metric-bar"></div>
+    <div class="tooltip-content">
+      <strong>Compression Ratio</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>Below 2.5:</strong> Undercharge or slipping compressor.</li>
+        <li><strong>2.5–4.5:</strong> Healthy compression.</li>
+        <li><strong>Above 4.5:</strong> Possible overcharge or restriction.</li>
+      </ul>
+      <strong>Quick Tips & Pitfalls</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li>Read pressures with engine running, A/C on MAX.</li>
+        <li>Ignore static (cold-start) pressures—they’re misleading.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 🧪 Estimated Fill % -->
+  <div class="tooltip">
+    <div id="fillBar" class="metric-bar"></div>
+    <div class="tooltip-content">
+      <strong>Estimated Fill %</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>&lt;95%:</strong> Undercharged — add refrigerant.</li>
+        <li><strong>95–105%:</strong> Correct factory charge.</li>
+        <li><strong>&gt;105%:</strong> Overcharged — recover refrigerant.</li>
+      </ul>
+      <strong>Quick Tips & Pitfalls</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li>Verify factory-charge spec for that vehicle.</li>
+        <li>Convert units (oz⇄lb⇄g) before calculating.</li>
+        <li>Let pressures stabilize (~2 min) under full load.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ❄️ Superheat -->
+  <div class="tooltip">
+    <div id="superheatBar" class="metric-bar"></div>
+    <div class="tooltip-content">
+      <strong>Superheat</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>&lt;10 °F:</strong> Too little—TXV overfeeding or too-large orifice.</li>
+        <li><strong>10–15 °F:</strong> Balanced evaporator load.</li>
+        <li><strong>&gt;15 °F:</strong> Undercharge or restriction suspected.</li>
+      </ul>
+      <strong>Quick Tips & Pitfalls</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li>Measure at the same spot on suction line each time.</li>
+        <li>Use black-tape or a probe—don’t trust shiny-metal IR readings.</li>
+        <li>Humidity can skew readings—keep it in mind.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 🧊 Subcooling (you already have this) -->
+  <div class="tooltip">
     <div id="subcoolingBar" class="metric-bar"></div>
+    <div class="tooltip-content">
+      <strong>Subcooling</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>&lt;5 °F:</strong> Undercharged or poor condenser airflow.</li>
+        <li><strong>8–20 °F:</strong> Correct charge & good heat rejection.</li>
+        <li><strong>&gt;20 °F:</strong> Overcharge or bypass condition.</li>
+      </ul>
+      <strong>Quick Tips & Pitfalls</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li>Let the system stabilize under load before reading.</li>
+        <li>If fans cycle off, read immediately when they restart.</li>
+        <li>TXV systems: 10–15 °F; orifice systems: 12–20 °F target.</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+
+
   </div>
     ${techNotes ? `<div class="report-section"><strong>Technician Notes:</strong><br>${techNotes.replace(/\n/g, "<br>")}</div>` : ""}
     ${attachedImages.map(src => `<img src="${src}" style="max-width:150px; margin-top:10px;" />`).join("")}
@@ -2006,6 +2127,15 @@ const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
 	chargeUnit,  
 	chargeTolerance: 2
 });
+
+document.querySelectorAll('.tooltip').forEach(wrapper => {
+  wrapper.addEventListener('click', () => {
+    wrapper.classList.toggle('show');
+  });
+});
+
+
+
 
   // ─── Store latest report for chat widget ───────────────────────────
   window.latestReportText = stripHTML(document.getElementById("output").innerHTML);
@@ -2043,6 +2173,7 @@ const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
     }
   }
 }
+
     
 
 document.getElementById("evaluateBtn").addEventListener("click", runEvaluation);
