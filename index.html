@@ -1,10 +1,11 @@
+working 3.9.2c
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>❄️ A/C Triage Pro v3.9.1 Working beta</title>
+  <title>❄️ A/C Triage Pro v3.9.3 Working beta</title>
   <style>
 label {
   font-weight: bold !important;
@@ -14,8 +15,8 @@ label {
   display: none;
 }
 
-#highSidePortType {
-  min-width: 220px; /* Adjust as needed for your longest option */
+#factoryCharge {
+  min-width: 80%; /* Adjust as needed for your longest option */
   width: auto;
   font-size: 1em;
 }
@@ -29,9 +30,9 @@ input, select, textarea {
 
 @media (min-width: 700px) {
   select, input[type="number"], input[type="text"] {
-    min-width: 180px;    /* Adjust to fit your longest label/option */
+    min-width: 180px;    /* Adjust input text to fit your longest label/option */
     max-width: 100%;
-    font-size: 1em;
+    font-size: .8em;
   }
   /* Optional: make Unit/short fields narrower */
   .short-field {
@@ -43,11 +44,11 @@ input, select, textarea {
 
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
+      background-color: #f0f0f0;
       color: #111;
       max-width: 800px;
       margin: auto;
-      padding: 20px;
+      padding: 0px;
     }
     h2 { color: #0074D9; margin-bottom: 8px; }
 .form-row {
@@ -74,6 +75,14 @@ label {
       box-sizing: border-box;
       margin-bottom: 0;
     }
+    /* flash animation */
+    @keyframes flashBorder {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(255,0,0,0.9); }
+      50%     { box-shadow: 0 0 0 3px rgba(255,0,0,0); }
+    }
+    .flash-refrig {
+      animation: flashBorder 1s ease-in-out 3;
+    }
 
     textarea { resize: vertical; }
     small { display: block; margin-top: 2px; }
@@ -95,7 +104,8 @@ label {
     button.no, .modal-content button.no { background: #FF4136; }
     button.yes, .modal-content button.yes { background: #2ECC40; }
     #brandingHeader img { max-height: 36px; }
-    /* Modal Styling */
+  
+  /* Modal Styling */
     .modal {
       display: none;
       position: fixed;
@@ -181,19 +191,45 @@ label {
   font-size: 0.88em;
   color: #555;
 }
- .chat-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 360px;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      font-size: 0.95rem;
-    }
+/* 1) the outer widget */
+#chat-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  font-family: sans-serif;
+}
+
+/* 2) the round toggle icon */
+#chat-widget #chat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #0074D9 url('chat-icon.svg') center/60% no-repeat;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
+/* 3) chat box — hidden by default */
+#chat-widget .chat-container {
+  display: none;
+  position: fixed;       /* so it lives above the icon */
+  bottom: 80px;          /* icon height (48px) + 20px margin + 12px extra */
+  right: 20px;
+  width: 360px;
+  background: red;       /* your example color */
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 0.95rem;
+  max-height: 450px;
+}
+
+/* 4) when .open is toggled, show it */
+#chat-widget.open .chat-container {
+  display: flex;
+}
 
     .chat-header {
       background: #2c3e50;
@@ -307,6 +343,26 @@ label {
     </div>
   </div>
 
+<!-- Accountability Modal: Tech Name Confirmation BEFORE static test -->
+<div id="preStaticModal" class="modal">
+  <div class="modal-content" style="max-width:420px;">
+    <h3>⚠️ A/C Refrigerant Identification Warning</h3>
+    <ul style="font-size: 0.98em;">
+      <li><b>ALWAYS</b> use a <b>quality manifold gauge set</b> to verify static pressure and refrigerant type before connecting any recovery/recharge machine.</li>
+      <li><b>Do NOT</b> connect your recovery machine or perform a dynamic test until you have confirmed the correct refrigerant and static pressure is in range for your selected refrigerant type.</li>
+      <li>Running recovery or charging on a contaminated (e.g. R-134a in R-1234yf system) vehicle can permanently contaminate your equipment.</li>
+    </ul>
+    <div style="margin-top:12px;">
+      <label for="techNameInput" style="display:block;margin-bottom:6px;font-size:0.98em;">
+        Technician Name (required for confirmation):
+      </label>
+      <input type="text" id="techNameInput" autocomplete="off" placeholder="Enter your name here…" />
+    </div>
+    <button id="preStaticContinueBtn" disabled style="margin-top:14px;">Continue</button>
+  </div>
+</div>
+
+
   <!-- TEST POINT POPUP -->
   <div id="testPointPopup" class="modal">
     <div class="modal-content">
@@ -345,15 +401,48 @@ label {
     </div>
   </div>
 
-  <!-- BRANDING HEADER -->
-  <div id="brandingHeader" style="margin-bottom: 20px;"></div>
-  <button id="changeBrandingBtn" style="float: right; margin-bottom: 10px;">Change Branding</button>
-  <div style="clear: both;"></div>
+<!-- BRANDING HEADER -->
+<style>
+  #changeBrandingBtn {
+    float: left;
+    margin-bottom: 6px;
+    padding: 4px 10px;
+    font-size: 0.7em;
+    text-align: left;
+    width: auto;
+    background-color: transparent;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    transition: color 0.2s ease, font-weight 0.2s ease;
+  }
 
-  <!-- MAIN TITLE & HELP -->
-  <h2>❄️A/C Triage by Autotech Intelligence</h2>
+  #changeBrandingBtn:hover {
+    color: #0000cc;
+    font-weight: bold;
+    text-decoration: underline;
+  }
+
+  #changeBrandingBtn:active {
+    color: #004e99;
+    font-style: italic;
+  }
+</style>
+
+<div id="brandingHeader" style="margin-bottom: 10px; font-size: 0.9em;"></div>
+
+<button id="changeBrandingBtn">
+  <em>Change Branding</em>
+</button>
+
+
+<div style="text-align: center; margin-top: 12px;">
+
+  <h2>❄️A/C Triage</h2>
+  <em>by Autotech Intelligence</em>
+</div>
+
 <button id="helpBtn" class="confirm" style="font-size: 0.8em; padding: 4px 8px; margin-bottom: 12px;">
-  🤔 How to Start
+ Read instruction on How to Start 🤔
 </button>
 
 
@@ -376,19 +465,79 @@ label {
     </div>
     <div class="form-cell">
       <label for="vehicle">Year-Make-Model:</label>
-      <input type="text" id="vehicle" placeholder="Vehicle’s Year Make Model" />
+<input type="text" id="vehicle" placeholder="Vehicle’s Year Make Model" oninput="this.value = this.value.toUpperCase(); 
+autoToggleIHXFromVIN();"/> 
+
     </div>
   </div>
 
   <div id="timestamp" style="margin: 8px 0; font-weight: bold;"></div>
+  <!-- REFRIGERANT TYPE -->
 
-  <div class="form-row">
+    <div class="form-cell" style="flex: 0 0 200px;">
+      <label for="refrigerant">Refrigerant Type:</label>
+      <select id="refrigerant">
+        <option value="r134a">R-134a</option>
+        <option value="r1234yf">R-1234yf</option>
+      </select>
+    </div>
+  </div>
+
     <div class="form-cell">
       <label for="zipCode" style="font-size: 0.9em;">ZIP Code (for weather):</label>
       <input type="text" id="zipCode" maxlength="5" placeholder="e.g. 77001" style="width: 20%;" />
-      <small id="weatherStatus" style="color: #0074D9;"></small>
+      <small id="weatherStatus" style="color: blue;"></small>
+    </div>
+
+
+  <!-- AMBIENT & RH -->
+ 
+    <div class="form-cell" style="flex: 0 0 120px;">
+      <label for="ambient">Ambient Temp (°F):</label>
+      <input type="number" id="ambient" min="30" max="120" placeholder="e.g. 85" />
+    </div>
+    <div class="form-cell" style="display: none;">
+      <label for="rh">Humidity (%):</label>
+      <input type="number" id="rh" min="0" max="100" placeholder="e.g. 45" />
+    </div>
+
+
+  <!-- STATIC PRESSURE -->
+  <div style="margin-bottom: 8px; font-size: 0.95em; color: blue;">
+    <div id="staticPressureRangeDisplay">
+       🫧 Expected Static Pressure (Engine Off): <em>Enter ambient temperature</em>
     </div>
   </div>
+
+    <div class="form-cell" style="flex: 0 0 240px;">
+      <label for="staticPressure">Static Pressure (PSI):</label>
+      <input type="number" id="staticPressure" placeholder="e.g. 85" />
+      <em style="font-size: 0.85em; color: #555;">Tip: Install low-side gauge on service port before measuring.</em>
+    </div>
+  
+  <!-- SERVICE PROMPT -->
+  <div id="servicePrompt" style="margin-top: 16px;">
+    <label for="serviceInterval"><strong>How long since last A/C service?</strong></label>
+    <select id="serviceInterval">
+      <option value="" disabled selected>Select one…</option>
+      <option value="Never">Never</option>
+      <option value="Recently">Recently</option>
+      <option value="LastYear">Last Year</option>
+      <option value="Unknown">Unknown</option>
+    </select>
+  </div>
+
+  <!-- Reporting Sequence -->
+ 
+    <div class="form-cell" style="flex: 0 0 200px;">
+      <label for="testStage">Evaluation Testing Stage:</label>
+      <select id="testStage">
+        <option value="Pre-Test Evaluation">Pre-Test Evaluation</option>
+        <option value="Final Results Evaluation">Final Results Evaluation</option>
+      </select>
+    </div>
+  </div>
+
 
   <input type="hidden" id="pressureReliefConfirmed" value="false" />
 
@@ -405,70 +554,8 @@ label {
     </div>
   </div>
 
-  <!-- AMBIENT & RH -->
-  <div class="form-row">
-    <div class="form-cell" style="flex: 0 0 120px;">
-      <label for="ambient">Ambient Temp (°F):</label>
-      <input type="number" id="ambient" min="30" max="120" placeholder="e.g. 85" />
-    </div>
-    <div class="form-cell" style="display: none;">
-      <label for="rh">Humidity (%):</label>
-      <input type="number" id="rh" min="0" max="100" placeholder="e.g. 45" />
-    </div>
-  </div>
-
-  <!-- REFRIGERANT TYPE -->
-  <div class="form-row">
-    <div class="form-cell" style="flex: 0 0 200px;">
-      <label for="refrigerant">Refrigerant Type:</label>
-      <select id="refrigerant">
-        <option value="r134a">R-134a</option>
-        <option value="r1234yf">R-1234yf</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- STATIC PRESSURE -->
-  <div style="margin-bottom: 8px; font-size: 0.95em;">
-    <div id="staticPressureRangeDisplay">
-       🫧 Expected Static Pressure (Engine Off): <em>Enter ambient temperature</em>
-    </div>
-  </div>
-  <div class="form-row">
-    <div class="form-cell" style="flex: 0 0 240px;">
-      <label for="staticPressure">Static Pressure (PSI):</label>
-      <input type="number" id="staticPressure" placeholder="e.g. 85" />
-      <em style="font-size: 0.85em; color: #555;">Tip: Install low-side gauge on service port before measuring.</em>
-    </div>
-  </div>
-
-  <!-- Reporting Sequence -->
-  <div class="form-row" style="margin-top: 12px;">
-    <div class="form-cell" style="flex: 0 0 200px;">
-      <label for="testStage">Evaluation Testing Stage:</label>
-      <select id="testStage">
-        <option value="Pre-Test Evaluation">Pre-Test Evaluation</option>
-        <option value="Final Results Evaluation">Final Results Evaluation</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- SERVICE PROMPT -->
-  <div id="servicePrompt" style="margin-top: 16px;">
-    <label for="serviceInterval"><strong>How long since last A/C service?</strong></label>
-    <select id="serviceInterval">
-      <option value="" disabled selected>Select one…</option>
-      <option value="Never">Never</option>
-      <option value="Recently">Recently</option>
-      <option value="LastYear">Last Year</option>
-      <option value="Unknown">Unknown</option>
-    </select>
-  </div>
-
   <!-- ADVANCED / DYNAMIC FIELDS (HIDDEN UNTIL STATIC PASS) -->
 <div id="advancedFieldsWrapper" style="display: none;">
-  <!-- Row: Was Charged? -->
-  <div class="form-row" style="margin-top: 12px;">
     <div class="form-cell" style="flex: 0 0 200px;">
       <label for="chargedStatus">Was a recovery/recharge just performed?</label>
       <select id="chargedStatus">
@@ -476,7 +563,7 @@ label {
         <option value="charged">Yes</option>
       </select>
     </div>
-  </div>
+
 
   <!-- Tech Note -->
   <div style="margin-top: 12px; margin-bottom: 8px;">
@@ -484,14 +571,15 @@ label {
   </div>
 
   <!-- Row: Factory Charge + Unit -->
-  <div class="form-row charge-unit-row">
-    <div class="form-cell" style="display: flex; align-items: flex-end; gap: 0;">
-      <div style="flex: 1;">
+  <!-- <div class="form-row charge-unit-row"> -->
+
+    <div class="form-cell" style="display: flex; align-items: flex-end; gap: 2px;">
+      <div style="flex: 1 1;">
         <label for="factoryCharge">Factory Charge (oz):</label>
         <input type="number" id="factoryCharge" maxlength="5" placeholder="e.g. 20" style="margin-right: 0;" />
       </div>
-      <div style="width: 55px;">
-        <label for="chargeUnit" style="opacity: 0; height: 0; margin: 0; padding: 0;">Unit</label>
+      <div style="width: 40px;">
+        <label for="chargeUnit" style="opacity: 0; height: 0; margin: 0; padding: 0;">Unit</label> 
         <select id="chargeUnit" style="margin-left: 0; width: 100%;">
           <option value="oz">oz</option>
           <option value="lb">lb</option>
@@ -499,11 +587,11 @@ label {
         </select>
       </div>
     </div>
-  </div>
 
   <!-- Row: Temp Tool + High Side Port -->
-  <div class="form-row" style="margin-top: 12px;">
-    <div class="form-cell" style="flex: 0 0 200px;">
+  
+
+    <div class="form-cell">
       <label for="tempSource">Temp Sensing Tool:</label>
       <select id="tempSource">
         <option value="ir-shiny" selected>IR Gun (Shiny Metal)</option>
@@ -512,7 +600,7 @@ label {
       </select>
     </div>
 
-    <div class="form-cell" style="flex: 0 0 200px;">
+    <div class="form-cell" >
       <label for="highSidePortType">High-Side Port Location:</label>
       <select id="highSidePortType">
         <option value="liquid" selected>🟠 Liquid Line (post-condenser)</option>
@@ -520,33 +608,15 @@ label {
         <option value="unknown">⚫️ Unknown</option>
       </select>
     </div>
-  </div>
-
-  <!-- Row: Expansion Device -->
-  <div class="form-row" style="margin-top: 12px;">
-    <div class="form-cell" style="flex: 0 0 200px;">
+ 
+<!-- Row: Expansion Device -->
+    <div class="form-cell">
       <label for="expansionDevice">Expansion Device:</label>
       <select id="expansionDevice">
         <option value="txv">TXV</option>
         <option value="orifice">Orifice Tube</option>
       </select>
     </div>
-  </div>
-
-    <button id="testPointHelpBtn" style="font-size: 0.85em; margin-top: 8px;">🤔 Temperature Test Points?</button>
-
-<!-- Row 1: Low-side & Evap Data -->
-<div class="form-row">
-  <div class="form-cell">
-    <label for="evapPressure">🔵 Low-Side (PSI):</label>
-    <input type="number" id="evapPressure" placeholder="e.g. 30" />
-    <div id="satTempDisplay" style="font-size: 1em; color: #0074D9; margin-top: 8px;"></div>
-  </div>
-
-  <div class="form-cell">
-    <label for="evapOutlet">Evaporator Outlet Temp (°F):</label>
-    <input type="number" id="evapOutlet" placeholder="e.g. 40" />
-  </div>
 
   <div class="form-cell">
     <label for="evapTempSource">Evap Temp Source:</label>
@@ -556,32 +626,12 @@ label {
     </select>
   </div>
 
-  <div class="form-cell">
-    <label for="ihxEquipped">IHX Manifold?</label>
+<div class="form-cell">
+    <label for="ihxEquipped">Is system equipped with an IHX-manifold?</label>
     <select id="ihxEquipped">
-      <option value="no">No IHX</option>
-      <option value="yes">Has IHX</option>
+      <option value="no">No — Standard loop</option>
+      <option value="yes">Yes — IHX present</option>
     </select>
-  </div>
-</div>
-
-<!-- Row 2: High-side & Compressor Data -->
-<div class="form-row">
-  <div class="form-cell">
-    <label for="highPressure">🔴 High-Side (PSI):</label>
-    <input type="number" id="highPressure" placeholder="e.g. 200" />
-    <div id="highSatTempDisplay" style="font-size: 1em; color: #FF4136; margin-top: 8px;"></div>
-  </div>
-
-  <div class="form-cell">
-    <label for="outlet">Condenser Outlet Temp (°F):</label>
-    <input type="number" id="outlet" placeholder="e.g. 120" />
-  </div>
-
-  <div class="form-cell" id="txvBlock" style="display: none;">
-    <label for="tempAtTXV">TXV Inlet Temp (°F):</label>
-    <input type="number" id="tempAtTXV" placeholder="e.g. 100" step="0.1" />
-  </div>
 
   <div class="form-cell">
     <label for="compressorType">Compressor Type:</label>
@@ -592,26 +642,62 @@ label {
       <option value="scroll">Scroll</option>
     </select>
   </div>
+
+
+
+<button id="testPointHelpBtn" style="font-size: 0.85em; margin-top: 8px;">TP#'s 🤔 Temperature Test Points?</button>
+
+<!-- Row 1: Low-side & Evap Data -->
+<div class="form-row">
+  <div class="form-cell">
+    <label for="evapPressure">🔵 Low-Side (PSI):</label>
+    <input type="number" id="evapPressure" placeholder="e.g. 30psi" />
+   <div id="lowSatTempDisplay" style="font-size: 1em; color: #0074D9; margin-top: 0px;"></div>
 </div>
+  <div class="form-cell">
+    <label for="evapOutlet">Evaporator Outlet Temp (°F):</label>
+    <input type="number" id="evapOutlet" placeholder="TP# 1 - e.g. (55°F)" />
+  </div>
+</div>
+
+<!-- Row 2: High-side & Compressor Data -->
+<div class="form-row">
+  <div class="form-cell">
+    <label for="highPressure">🔴 High-Side (PSI):</label>
+    <input type="number" id="highPressure" placeholder="e.g. 150psi" />
+    <div id="highSatTempDisplay" style="font-size: 1em; color: #FF4136; margin-top: 0px;"></div>
+  </div>
+ <div class="form-cell">
+    <label for="outlet">Condenser Outlet Temp (°F):</label>
+    <input type="number" id="outlet" placeholder="TP# 2 - e.g. (92°F)" />
+  </div>
+</div>
+
+  <div class="form-cell" id="txvBlock" style="display: none;">
+    <label for="tempAtTXV">TXV Inlet Temp (°F):</label>
+    <input type="number" id="tempAtTXV" placeholder="TP# 2 - e.g. TXV Inlet Temp (90°F)" />
+  </div>
+
     <style>
       .form-row { display: flex; align-items: center; gap: 20px; margin-bottom: 8px; }
       .form-cell { flex: 1; }
       input, select { box-sizing: border-box; }
     </style>
 
-    <div class="form-row">
-      <div class="form-cell" style="flex: 0 0 160px;">
-        <label for="vent">Center Vent Temp (°F):</label>
-        <input type="number" id="vent" placeholder="e.g. 55" />
-      </div>
-      <div class="form-cell">
-        <div id="ventMessage" style="font-size: 0.85em; color: #0074D9;"></div>
-      </div>
-    </div>
+<!-- Row 3: Center Vent & ... -->
+<div class="form-row" style="display: flex; align-items: center; gap: 20px;">
+  <div style="flex: 0 0 200px;">
+    <label for="vent">Center Vent Temp(°F):</label>
+	<input type="number" id="vent" placeholder="e.g. 55" />
+  </div>
+  <div id="ventMessage" style="flex: 1; font-size: 0.85em; color: #0074D9; line-height: 1.4;"></div>
+</div>
+
 
     <div id="testPointHelpBlock" style="display: none; margin-top: 8px;">
-      <button id="testPointHelpBtn2" style="font-size: 0.85em;">🤔 Temperature Test Points?</button>
+      <button id="testPointHelpBtn2" style="font-size: 0.85em;">TP#'s 🤔 Temperature Test Points?</button>
     </div>
+  </div>
 
   <div class="form-row" style="margin-top: 12px;">
     <div class="form-cell">
@@ -630,11 +716,21 @@ label {
 </div>
   <div class="button-group" style="margin-top: 16px;">
     <button id="evaluateBtn">Dynamic Testing</button>
+    <button id="triageBtn" class="confirm">🛠 Triage Helper</button>
+<pre id="triageResults" style="white-space:pre-wrap; margin-top:10px;"></pre>
     <button id="printBtn">🖨️ Print</button>
     <button id="downloadBtn" onclick="downloadPDF()">Save as PDF 📄</button>
 </div>
 
   <div id="output" class="result"></div>
+
+<!-- Chat Box Container -->
+<div class="chat-container">
+  <div class="chat-header">Autotech Intelligence</div>
+  <div id="cw_messages" class="chat-log cw_messages"></div>
+  <div id="customerSummary" style="display:none;"></div>  
+  <div class="footer">By Peter Sarantidis</div>
+</div>
 
 
 
@@ -643,8 +739,7 @@ label {
   </footer>
 
 
-  <script>
-
+<script>
     // ─── stripHTML: convert an element’s innerHTML into plain text ───────────────────────────
     function stripHTML(html) {
       const tempDiv = document.createElement("div");
@@ -658,7 +753,7 @@ label {
       return reportHTML ? stripHTML(reportHTML) : null;
     }
 
-    // ─── Modal Helpers ─────────────────────────────────────────────────────────────
+    // ─── Modal Helpers ─────────
     function showModal(id) {
       const modal = document.getElementById(id);
       if (modal) {
@@ -671,11 +766,10 @@ label {
         modal.style.display = "none";
       }
     }
-
     
     document.getElementById("helpBtn").addEventListener("click", () => showModal("helpPopup"));
     document.getElementById("testPointHelpBtn").addEventListener("click", () => showModal("testPointPopup"));
-    document.getElementById("testPointHelpBtn2").addEventListener("click", () => showModal("testPointPopup"));
+    //document.getElementById("testPointHelpBtn2").addEventListener("click", () => showModal("testPointPopup"));
     document.getElementById("changeBrandingBtn").addEventListener("click", () => showModal("brandingModal"));
 
     document.querySelectorAll(".modal button").forEach(btn => {
@@ -747,6 +841,75 @@ document.getElementById("testStage").addEventListener("change", function () {
 });
 });
 
+</script>
+
+<script>
+
+function rootCause() {
+  // 1) grab all the numbers we need
+  const ambient = parseFloat(document.getElementById("ambient").value) || 0;
+  const rh      = parseFloat(document.getElementById("rh").value)      || 0;
+  const vent    = parseFloat(document.getElementById("vent").value)    || 0;
+  const evapP   = parseFloat(document.getElementById("evapPressure").value) || 0;
+  const highP   = parseFloat(document.getElementById("highPressure").value) || 0;
+  const superheat   = parseFloat(document.getElementById("evapOutlet").value) - interpolate(ptTable[document.getElementById("refrigerant").value], evapP);
+  const condSat     = interpolate(ptTable[document.getElementById("refrigerant").value], highP);
+  const subcooling  = condSat - parseFloat(document.getElementById("outlet").value);
+  const percentFill = Math.round((condSat / (ambient + 25)) * 100);
+  const compRatio   = evapP > 0 ? (highP / evapP) : 0;
+
+  // 2) compute expected ranges
+  const ventRange = getExpectedVentDelta(ambient);
+  const condRange = getExpectedCondDelta(ambient, rh, document.getElementById("tempSource").value, document.getElementById("refrigerant").value);
+  const isYF      = document.getElementById("refrigerant").value === "r1234yf";
+  const subMin    = isYF ? 8  : 10;
+  const subMax    = isYF ? 18 : 20;
+  const highRatio = document.getElementById("compressorType").value.includes("vdc")
+                    ? (ambient >= 90 ? 4.8 : 4.5)
+                    : (ambient >= 90 ? 4.5 : 4.0);
+
+  // 3) build a list of all failing conditions
+  const causes = [];
+
+  // charge
+  if (percentFill < 95) causes.push("Under-charged system (check for leaks & add refrigerant).");
+  if (percentFill > 105) causes.push("Over-charged system (recover excess refrigerant).");
+
+  // airflow / vent
+  if (vent < ventRange.min) causes.push("Low Vent ΔT → poor airflow (dirty blower/filter or blend-door fault).");
+  if (vent > ventRange.max) causes.push("High Vent ΔT → possible over-charge or recirc door stuck.");
+
+  // condenser
+  if (condSat - ambient < condRange.min) causes.push("Low Condenser ΔT → restricted condenser airflow or low refrigerant.");
+  if (condSat - ambient > condRange.max) causes.push("High Condenser ΔT → over-charge or excessive airflow.");
+
+  // compression
+  if (compRatio < 2.5) causes.push("Low Compression Ratio → under-charge or slipping compressor.");
+  if (compRatio > highRatio) causes.push("High Compression Ratio → over-charge or system restriction.");
+
+  // superheat
+  if (superheat < 10) causes.push("Low Superheat (<10°F) → TXV overfeeding or oversized orifice.");
+  if (superheat > 15) causes.push("High Superheat (>15°F) → under-charge or restriction.");
+
+  // subcooling
+  if (subcooling < subMin) causes.push(`Low Subcooling (<${subMin}°F) → under-charge or poor condenser airflow.`);
+  if (subcooling > subMax) causes.push(`High Subcooling (>${subMax}°F) → over-charge or bypass condition.`);
+
+  // 4) if nothing failed, all good!
+  if (causes.length === 0) {
+    return "✅ All key values are within spec — no obvious root-cause detected.";
+  }
+
+  // 5) otherwise, return a bullet-list of suspects
+  return "⚠️ Possible root causes:\n• " + causes.join("\n• ");
+}
+
+// hook it up
+document.getElementById("triageBtn").addEventListener("click", () => {
+  const result = rootCause();
+  // you can show this however you like… alert, console, or inject into the page:
+  alert(result);
+});
 
     // ─── Toggle TXV Input based on IHX dropdown ────────────────────────────────
     document.getElementById("ihxEquipped").addEventListener("change", function() {
@@ -761,24 +924,6 @@ document.getElementById("testStage").addEventListener("change", function () {
         txvBlock.style.display = ihxSelect.value === "yes" ? "flex" : "none";
       }
     });
-
-    // ─── flashField & requireField ─────────────────────────────────────────────
-    function flashField(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.style.border = "2px solid #FF4136";
-      el.focus();
-      setTimeout(() => { el.style.border = ""; }, 1500);
-    }
-    function requireField(id, label) {
-      const el = document.getElementById(id);
-      if (!el || !el.value.trim()) {
-        flashField(id);
-        alert(`Please enter the "${label}" before proceeding.`);
-        return false;
-      }
-      return true;
-    }
 
     // ─── FETCH VEHICLE DATA from VIN (NHTSA) ──────────────────────────────────
     async function fetchVehicleData() {
@@ -804,35 +949,84 @@ document.getElementById("testStage").addEventListener("change", function () {
       }
     }
 
-    // ─── Auto-toggle IHX from VIN (based on known patterns) ───────────────────
-    function autoToggleIHXFromVIN() {
-      const vehicleStr = document.getElementById("vehicle").value.toUpperCase() || "";
-      const ihxDropdown = document.getElementById("ihxEquipped");
-      const yearMatch = vehicleStr.match(/(20\d{2})/);
-      const year = yearMatch ? parseInt(yearMatch[1]) : null;
-      const patterns = [
-        /TESLA/, /TOYOTA.*HYBRID/, /LEXUS.*HYBRID/, /HONDA.*ODYSSEY/, /HONDA.*HYBRID/, /HYUNDAI.*HYBRID/, /HYUNDAI.*SONATA/,
-        /KIA.*HYBRID/, /KIA.*SORENTO/, /KIA.*SPORTAGE/, /BMW.*X[35]/, /BMW.*PLUG-IN/, /BMW.*530I/, /BMW.*M550I/, /MERCEDES.*EQ/,
-        /MERCEDES.*GLE/, /AUDI.*E-TRON/, /AUDI.*Q5/, /FORD.*HYBRID/, /ESCAPE.*HYBRID/, /FUSION.*HYBRID/, /FORD.*EDGE/, /FORD.*EXPLORER/,
-        /CHEVY.*VOLT/, /CHEVY.*BOLT/, /CHEVY.*EQUINOX/, /GMC.*TERRAIN/, /CHRYSLER.*PACIFICA/, /DODGE.*DURANGO/, /DODGE.*JOURNEY/,
-        /VOLVO.*XC/, /VOLVO.*RECHARGE/, /JEEP.*4XE/, /JEEP.*GRAND CHEROKEE/, /NISSAN.*ALTIMA/, /NISSAN.*MURANO/, /MAZDA.*CX/, /SUBARU.*CROSSTREK/,
-        /ACURA.*MDX/, /INFINITI.*QX/, /CADILLAC/, /BUICK/, /GENESIS/, /ALFA ROMEO/, /PEUGEOT/, /RENAULT/, /SKODA/, /SEAT/, /CITROEN/,
-        /TOYOTA.*CAMRY/, /TOYOTA.*RAV4/, /HONDA.*ACCORD/, /HYUNDAI.*TUCSON/, /KIA.*NIRO/, /TOYOTA/, /HONDA/, /NISSAN/, /MAZDA/, /HYUNDAI/,
-        /KIA/, /SUBARU/, /MITSUBISHI/, /SUZUKI/, /ISUZU/
-      ];
-      const matches = patterns.some(pattern => {
-        if (pattern.test(vehicleStr)) {
-          return !year || year >= 2015;
-        }
-        return false;
-      });
-      if (ihxDropdown) {
-        ihxDropdown.value = matches ? "yes" : "no";
-        document.getElementById("txvBlock").style.display = matches ? "flex" : "none";
-      }
+  // ─── OEM Refrigerant Adoption Timeline ───────────────────
+  const refrigerantTimeline = [
+    { makes: [/CHRYSLER/, /JEEP.*CHEROKEE/],     startYear: 2013 },
+    { makes: [/HONDA/, /SUBARU/],                 startYear: 2017 },
+    { makes: [/CHEVROLET/, /BUICK/, /GMC/, /CADILLAC/], startYear: 2018 },
+    { makes: [/.*/],                              startYear: 2021 }
+  ];
+
+  function autoToggleIHXFromVIN() {
+    const vehicleStr = (document.getElementById("vehicle").value || "").toUpperCase();
+    const yearMatch  = vehicleStr.match(/(20\d{2})/);
+    const yr         = yearMatch ? parseInt(yearMatch[1], 10) : null;
+    const isMB       = /MERCEDES-BENZ/.test(vehicleStr);
+
+    // IHX toggle (unchanged)
+    const ihxPatterns = [ /* …your list… */ ];
+    const ihxDropdown = document.getElementById("ihxEquipped");
+    if (ihxDropdown) {
+      const ihxOn = ihxPatterns.some(p => p.test(vehicleStr) && (!yr || yr >= 2015));
+      ihxDropdown.value = ihxOn ? "yes" : "no";
+      document.getElementById("txvBlock").style.display = ihxOn ? "flex" : "none";
     }
 
-    // ─── WEATHER FETCH (OpenWeatherMap) ───────────────────────────────────────
+    // Refrigerant dropdown
+    const dd = document.getElementById("refrigerant");
+    if (!dd || !yr) return;
+    dd.classList.remove("flash-refrig");
+
+    // 1) Mercedes-Benz < 2021
+    if (isMB && yr < 2021) {
+      if (yr > 2016) {
+        // 2017–2020 → R-134a + flash
+        dd.value = "r134a";
+        dd.classList.add("flash-refrig");
+      } else {
+        // ≤ 2016 → r134a, no flash
+        dd.value = "r134a";
+      }
+      return; // skip timeline for MB < 2021
+    }
+
+    // 2) All others (including MB ≥ 2021) → timeline lookup
+    let pick = "r134a";
+    for (const rule of refrigerantTimeline) {
+      if (yr >= rule.startYear && rule.makes.some(rx => rx.test(vehicleStr))) {
+        pick = "r1234yf";
+        break;
+      }
+    }
+    dd.value = pick;
+  }
+
+  // Hook into VIN decode & manual YMM entry
+  document.getElementById("vin")
+    .addEventListener("input", () => setTimeout(autoToggleIHXFromVIN, 200));
+  document.getElementById("vehicle")
+    .addEventListener("input", autoToggleIHXFromVIN);
+    
+// ─── flash the Refrigerant type if unknown Field & requireField     
+
+function flashField(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.border = "2px solid #FF4136";
+      el.focus();
+      setTimeout(() => { el.style.border = ""; }, 1500);
+    }
+    function requireField(id, label) {
+      const el = document.getElementById(id);
+      if (!el || !el.value.trim()) {
+        flashField(id);
+        alert(`Please enter the "${label}" before proceeding.`);
+        return false;
+      }
+      return true;
+    }
+
+    // ─── WEATHER FETCH (OpenWeatherMap) ────────
     document.getElementById("zipCode").addEventListener("input", function() {
       const zip = this.value.trim();
       const weatherStatus = document.getElementById("weatherStatus");
@@ -864,7 +1058,7 @@ document.getElementById("testStage").addEventListener("change", function () {
       }
     });
 
-    // ─── Photo Preview & Attachment (max 5) ──────────────────────────────────
+    // ─── Photo Preview & Attachment (max 5) ────────────
     let attachedImages = [];
     function previewPhotos() {
       const input = document.getElementById("photos");
@@ -889,6 +1083,60 @@ document.getElementById("testStage").addEventListener("change", function () {
       input.value = "";
     }
     document.getElementById("photos").addEventListener("change", previewPhotos);
+</script>
+
+
+<script>
+// --- Modal helpers ---
+function showModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.style.display = "flex";
+}
+function hideModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.style.display = "none";
+}
+
+// --- Accountability Modal Logic ---
+document.addEventListener("DOMContentLoaded", function() {
+  window.preStaticModalShown = false;
+  window.techName = "";
+
+  document.getElementById("ro").addEventListener("input", () => {
+    window.preStaticModalShown = false; window.techName = "";
+  });
+  document.getElementById("vin").addEventListener("input", () => {
+    window.preStaticModalShown = false; window.techName = "";
+  });
+
+  document.getElementById("ambient").addEventListener("input", function() {
+    if (!window.preStaticModalShown && this.value.trim() !== "") {
+      window.preStaticModalShown = true;
+      showModal("preStaticModal");
+      document.getElementById("staticPressure").disabled = true;
+    }
+  });
+
+  const techNameInput = document.getElementById("techNameInput");
+  const continueBtn = document.getElementById("preStaticContinueBtn");
+  techNameInput.addEventListener("input", function() {
+    continueBtn.disabled = (this.value.trim() === "");
+  });
+  continueBtn.addEventListener("click", function() {
+    window.techName = techNameInput.value.trim();
+    hideModal("preStaticModal");
+    document.getElementById("staticPressure").disabled = false;
+    document.getElementById("staticPressure").focus();
+  });
+});
+</script>
+
+
+
+<script>
+// ── Global Utility Functions & Shared Constants ──
+const STATIC_LOW_BUFFER  = 5; // psi buffer for low side check
+const STATIC_HIGH_BUFFER = 5; // psi buffer for high side check
 
     // ─── PT CHART TABLES & INTERPOLATION ───────────────────────────────────
     const ptTable = {
@@ -1003,7 +1251,7 @@ document.getElementById("testStage").addEventListener("change", function () {
     // ─── Get Static Pressure Range ─────────────────────────────────────────
     function getStaticPressureRange(ambientTemp, refrigerant) {
       const table = ptTable[refrigerant];
-      if (!table || table.length === 0) return { min: NaN, max: NaN, center: NaN };
+      if (!table || table.length <2) return { min: NaN, max: NaN, center: NaN };
       let lower = null, upper = null;
       for (let i = 0; i < table.length - 1; i++) {
         const t1 = table[i].temp, t2 = table[i + 1].temp;
@@ -1017,108 +1265,132 @@ document.getElementById("testStage").addEventListener("change", function () {
       const interpolatedPsi = lower.psi + ratio * (upper.psi - lower.psi);
       return {
         center: interpolatedPsi,
-        min: interpolatedPsi - 2,
-        max: interpolatedPsi + 2
+    min: interpolatedPsi - STATIC_LOW_BUFFER,
+    max: interpolatedPsi + STATIC_HIGH_BUFFER
       };
     }
 
-    // ─── Evaluate Static Pressure (on ambient/static input) ─────────────────
-    function evaluateStaticPressure() {
-      const ambient = parseFloat(document.getElementById("ambient").value);
-      const refrigerant = document.getElementById("refrigerant").value;
-      const staticPSI = parseFloat(document.getElementById("staticPressure").value);
-      const staticDisplay = document.getElementById("staticPressureRangeDisplay");
-      const output = document.getElementById("output");
-      if (isNaN(ambient)) {
-        staticDisplay.innerHTML = `🫧 Expected Static Pressure (Engine Off): <em>Enter ambient temp!</em>`;
-        output.innerHTML = `
-          <div class="report-section" style="border-left: 4px solid gray;">
-            <strong>🌡️ Ambient Temperature Required</strong><br>
-            Please enter a valid ambient temperature to calculate the expected static pressure range.
-          </div>`;
-        return;
-      }
-      const range = getStaticPressureRange(ambient, refrigerant);
-      if (isNaN(staticPSI)) {
-        staticDisplay.innerHTML = `
-          🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
-          <strong>${range.min.toFixed(0)} ~ ${range.max.toFixed(0)} psi</strong><br>
-          <em>Enter Static Pressure (PSI) to diagnose fill state.</em>`;
-        output.innerHTML = `
-          <div class="report-section" style="border-left: 4px solid gray;">
-            <strong>📝 Awaiting Static PSI Input</strong><br>
-            Please enter a static pressure reading to determine system condition.<br>
-            Use the displayed expected range for guidance.
-          </div>`;
-        return;
-      }
-      // Undercharged
-      if (staticPSI < range.min -1 ) {
-        staticDisplay.innerHTML = `
-          🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
-          <strong>${range.min.toFixed(0)} ~ ${range.max.toFixed(0)} psi</strong><br>
-          <strong>⚠️ Undercharged – STOP.</strong><br>
-          Static pressure is below expected range. Perform a leak test, recover refrigerant, and recharge to factory specs.`;
-        document.getElementById("advancedFieldsWrapper").style.display = "none";
-        output.innerHTML = `
-          <div class="report-section" style="border-left: 4px solid red;">
-            <strong>❌ Undercharged System:</strong><br>
-            Static PSI is below the minimum expected range.<br>
-            Recommend recover/recharge and leak test before further diagnostics.
-          </div>`;
-        return;
-      }
-      // Overcharged or contamination (significantly above +10 psi)
-      if (staticPSI > range.max + 10) {
-        staticDisplay.innerHTML = `
-          🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
-          <strong>${range.min.toFixed(0)} ~ ${range.max.toFixed(0)} psi</strong><br>
-          <strong>🔴 Above Range – Possible Non-Condensables</strong><br>
-          ⚠️ Pressure is well above expected. Let system acclimate, then identify refrigerant and retest.`;
-        document.getElementById("advancedFieldsWrapper").style.display = "none";
-        output.innerHTML = `
-          <div class="report-section" style="border-left: 4px solid red;">
-            <strong>Measured Static Pressure:</strong> ${staticPSI} psi at ${ambient}°F<br><br>
-            <strong>🔴 High Static Pressure:</strong><br>
-            The pressure exceeds expected range significantly, possibly indicating air contamination or incorrect refrigerant.<br>
-            Allow full acclimation, then identify refrigerant and retest before recovery.
-          </div>`;
-        return;
-      }
-      // Slightly high
-      if (staticPSI > range.max) {
-        staticDisplay.innerHTML = `
-          🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
-          <strong>${range.min.toFixed(0)} ~ ${range.max.toFixed(0)} psi</strong><br>
-          <strong>⚠️ Slightly High.</strong><br>
-          Pressure slightly exceeds expected. On a hot day, let vehicle cool for 30–45 min and retest.`;
-        document.getElementById("advancedFieldsWrapper").style.display = "block";
-        output.innerHTML = `
-          <div class="report-section" style="border-left: 4px solid orange;">
-            <strong>⚠️ Slightly Elevated Static Pressure:</strong><br>
-            Your reading is a bit high. Let the system stabilize and retest in shade. Proceed with caution if performing dynamic tests.
-          </div>`;
-        return;
-      }
-      // Within range
+// Helper to strip HTML for report/plaintext export
+function stripHTML(html) {
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
+  return tempDiv.innerText.trim();
+}
+
+</script>
+
+<script>
+  // ─── Evaluate Static Pressure (on ambient/static input) ─────────────────
+  function evaluateStaticPressure() {
+    const ambient = parseFloat(document.getElementById("ambient").value);
+    const refrigerant = document.getElementById("refrigerant").value;
+    const staticPSI = parseFloat(document.getElementById("staticPressure").value);
+    const staticDisplay = document.getElementById("staticPressureRangeDisplay");
+    const output = document.getElementById("output");
+
+    if (isNaN(ambient)) {
+      staticDisplay.innerHTML = `🫧 Expected Static Pressure (Engine Off): <em>Enter ambient temp!</em>`;
+      output.innerHTML = `
+        <div class="report-section" style="border-left: 4px solid gray;">
+          <strong>🌡️ Ambient Temperature Required</strong><br>
+          Please enter a valid ambient temperature to calculate the expected static pressure range.
+        </div>`;
+      return;
+    }
+
+    const range = getStaticPressureRange(ambient, refrigerant);
+    // round down min, round up max
+    const minVal = Math.floor(range.min);
+    const maxVal = Math.ceil(range.max);
+
+    if (isNaN(staticPSI)) {
       staticDisplay.innerHTML = `
         🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
-        <strong>${range.min.toFixed(0)} ~ ${range.max.toFixed(0)} psi</strong><br>
-        <strong>✅ Within Range.</strong><br>
-        Proceed to dynamic testing.`;
+        <strong>${minVal.toFixed(0)} ~ ${maxVal.toFixed(0)} psi</strong><br>
+        <em>Enter Static Pressure (PSI) to diagnose fill state.</em>`;
+      output.innerHTML = `
+        <div class="report-section" style="border-left: 4px solid gray;">
+          <strong>📝 Awaiting Static PSI Input</strong><br>
+          Please enter a static pressure reading to determine system condition.<br>
+          Use the displayed expected range for guidance.
+        </div>`;
+      return;
+    }
+
+    // Undercharged
+    if (staticPSI < range.min) {
+      staticDisplay.innerHTML = `
+        🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+        <strong>${minVal.toFixed(0)} ~ ${maxVal.toFixed(0)} psi</strong><br>
+        <strong>⚠️ Undercharged – STOP.</strong><br>
+        Static pressure is below expected range. Perform a leak test, recover refrigerant, and recharge to factory specs.`;
+      document.getElementById("advancedFieldsWrapper").style.display = "none";
+      
+  output.innerHTML = `
+    <div class="report-section" style="border-left: 4px solid red;">
+      <strong>❌ Undercharged System:</strong><br>
+      Static PSI is below the minimum expected range.<br>
+      Recommend recover/recharge and leak test before further diagnostics.
+    </div>
+  `;
+  return;
+}
+
+    // Overcharged or contamination (significantly above +10 psi)
+    if (staticPSI > range.max + 10) {
+      staticDisplay.innerHTML = `
+        🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+        <strong>${minVal.toFixed(0)} ~ ${maxVal.toFixed(0)} psi</strong><br>
+        <strong>🔴 Above Range – Possible Non-Condensables</strong><br>
+        ⚠️ Pressure is well above expected. Let system acclimate, then identify refrigerant and retest.`;
+      document.getElementById("advancedFieldsWrapper").style.display = "none";
+      output.innerHTML = `
+        <div class="report-section" style="border-left: 4px solid red;">
+          <strong>Measured Static Pressure:</strong> ${staticPSI} psi at ${ambient}°F<br><br>
+          <strong>🔴 High Static Pressure:</strong><br>
+          The pressure exceeds expected range significantly, possibly indicating air contamination or incorrect refrigerant.<br>
+          Allow full acclimation, then identify refrigerant and retest before recovery.
+        </div>`;
+      return;
+    }
+
+    // Slightly high
+    if (staticPSI > range.max) {
+      staticDisplay.innerHTML = `
+        🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+        <strong>${minVal.toFixed(0)} ~ ${maxVal.toFixed(0)} psi</strong><br>
+        <strong>⚠️ Slightly High.</strong><br>
+        Pressure slightly exceeds expected. On a hot day, let vehicle cool for 30–45 min and retest.`;
       document.getElementById("advancedFieldsWrapper").style.display = "block";
       output.innerHTML = `
-        <div class="report-section" style="border-left: 4px solid green;">
-          <strong>✅ Static Pressure Within Range:</strong><br>
-          System appears properly charged. Proceed to dynamic (engine-running) testing.
+        <div class="report-section" style="border-left: 4px solid orange;">
+          <strong>⚠️ Slightly Elevated Static Pressure:</strong><br>
+          Your reading is a bit high. Let the system stabilize and retest in shade. Proceed with caution if performing dynamic tests.
         </div>`;
+      return;
     }
-    document.getElementById("ambient").addEventListener("input", evaluateStaticPressure);
-    document.getElementById("staticPressure").addEventListener("input", evaluateStaticPressure);
-    document.getElementById("refrigerant").addEventListener("change", () => {
-      evaluateStaticPressure();
-      updateSaturationDisplay();
-    });
+
+    // Within range
+    staticDisplay.innerHTML = `
+      🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+      <strong>${minVal.toFixed(0)} ~ ${maxVal.toFixed(0)} psi</strong><br>
+      <strong>✅ Within Range.</strong><br>
+      Proceed to dynamic testing.`;
+    document.getElementById("advancedFieldsWrapper").style.display = "block";
+    output.innerHTML = `
+      <div class="report-section" style="border-left: 4px solid green;">
+        <strong>✅ Static Pressure Within Range:</strong><br>
+        System appears properly charged. Proceed to dynamic (engine-running) testing.
+      </div>`;
+  }
+
+  // event listeners
+  document.getElementById("ambient").addEventListener("input", evaluateStaticPressure);
+  document.getElementById("staticPressure").addEventListener("input", evaluateStaticPressure);
+  document.getElementById("refrigerant").addEventListener("change", () => {
+    evaluateStaticPressure();
+    updateSaturationDisplay();
+  });
 
     // ─── Pressure Relief Response ─────────────────────────────────────────
     function handleLiquidPortReliefResponse(heard) {
@@ -1170,7 +1442,7 @@ document.getElementById("testStage").addEventListener("change", function () {
       const refrigerant = document.getElementById("refrigerant").value;
       const lowPsi = parseFloat(document.getElementById("evapPressure").value);
       const highPsi = parseFloat(document.getElementById("highPressure").value);
-      const lowSatDisplay = document.getElementById("satTempDisplay");
+      const lowSatDisplay = document.getElementById("lowSatTempDisplay");
       const highSatDisplay = document.getElementById("highSatTempDisplay");
 
       // Superheat/subcooling ranges based on refrigerant & expansion device
@@ -1306,37 +1578,85 @@ document.getElementById("testStage").addEventListener("change", function () {
       return { subcooling: subcool.toFixed(0), status, tag };
     }
 
-    function evaluateTPDelta(ambient, condOutlet, tempAtTXV, tempSourceMode) {
-      if (isNaN(ambient) || isNaN(condOutlet) || isNaN(tempAtTXV)) {
-        return { tpDelta: null, status: "⚠️ Missing readings.", tag: "CODE-TP-INVALID", scoreImpact: 0 };
-      }
-      let delta = tempAtTXV - condOutlet;
-      if (tempSourceMode === "ir-shiny") {
-        delta += 2; // IR bias
-      }
-      const expected = ambient >= 90 ? 1.5 : 1.0;
-      const threshold = expected + 1.0;
-      const isIHX = document.getElementById("ihxEquipped").value === "yes";
-      if (isIHX) {
-        if (delta <= 0 && delta >= -3) {
-          return { tpDelta: Number(delta.toFixed(0)), status: `✅ TP#3→TP#2 drop ${delta.toFixed(0)}°F normal (IHX).`, tag: "CODE-TP-IHX-NORMAL", scoreImpact: 1 };
-        } else if (delta < -3) {
-          return { tpDelta: Number(delta.toFixed(0)), status: `⚠️ Excessive TP#2 drop ${Math.abs(delta).toFixed(0)}°F (IHX).`, tag: "CODE-TP-IHX-EXCESSIVE", scoreImpact: -1 };
-        } else if (delta >= 0 && delta <= 3) {
-          return { tpDelta: Number(delta.toFixed(0)), status: `⚠️ Unexpected TP#2 rise ${delta.toFixed(0)}°F (IHX).`, tag: "CODE-TP-IHX-RISE", scoreImpact: -1 };
-        } else {
-          return { tpDelta: Number(delta.toFixed(0)), status: `⚠️ Unusual TP#3→TP#2 ΔT ${delta.toFixed(0)}°F (IHX).`, tag: "CODE-TP-IHX-OUT", scoreImpact: -1 };
-        }
-      } else {
-        if (delta >= 0 && delta <= 2) {
-          return { tpDelta: Number(delta.toFixed(0)), status: `✅ TP#3→TP#2 rise ${delta.toFixed(0)}°F normal.`, tag: "CODE-TP-NONIHX-NORMAL", scoreImpact: 1 };
-        } else if (delta < 0) {
-          return { tpDelta: Number(delta.toFixed(0)), status: `⚠️ Unexpected TP#2 drop ${Math.abs(delta).toFixed(0)}°F.`, tag: "CODE-TP-NONIHX-DROP", scoreImpact: -1 };
-        } else {
-          return { tpDelta: Number(delta.toFixed(0)), status: `⚠️ Excessive TP#3→TP#2 rise ${delta.toFixed(0)}°F.`, tag: "CODE-TP-NONIHX-EXCESS", scoreImpact: -1 };
-        }
-      }
+   function evaluateTPDelta(ambient, condOutlet, tempAtTXV, tempSourceMode) {
+  if (isNaN(ambient) || isNaN(condOutlet) || isNaN(tempAtTXV)) {
+    return {
+      tpDelta: null,
+      status: "⚠️ Missing readings.",
+      tag: "CODE-TP-INVALID",
+      scoreImpact: 0
+    };
+  }
+
+  let delta = tempAtTXV - condOutlet; // TP#2 – TP#3 (TXV Inlet – Condenser Outlet)
+
+  // Apply IR bias adjustment if needed
+  if (tempSourceMode === "ir-shiny") {
+    delta += 2;
+  }
+
+  const expected = ambient >= 90 ? 1.5 : 1.0;
+  const threshold = expected + 1.0;
+  const isIHX = document.getElementById("ihxEquipped").value === "yes";
+
+  if (isIHX) {
+    // IHX-equipped systems should show a small TP#2 drop
+    if (delta <= 0 && delta >= -3) {
+      return {
+        tpDelta: Number(delta.toFixed(0)),
+        status: `✅ TP#2–TP#3 drop ${Math.abs(delta).toFixed(0)}°F normal (IHX).`,
+        tag: "CODE-TP-IHX-NORMAL",
+        scoreImpact: 1
+      };
+    } else if (delta < -3) {
+      return {
+        tpDelta: Number(delta.toFixed(0)),
+        status: `⚠️ Excessive TP#2–TP#3 drop ${Math.abs(delta).toFixed(0)}°F (IHX).`,
+        tag: "CODE-TP-IHX-EXCESSIVE",
+        scoreImpact: -1
+      };
+    } else if (delta > 0 && delta <= 3) {
+      return {
+        tpDelta: Number(delta.toFixed(0)),
+        status: `⚠️ TP#2–TP#3 rise ${delta.toFixed(0)}°F unexpected for IHX.`,
+        tag: "CODE-TP-IHX-RISE",
+        scoreImpact: -1
+      };
+    } else {
+      return {
+        tpDelta: Number(delta.toFixed(0)),
+        status: `⚠️ Unusual TP#2–TP#3 ΔT ${delta.toFixed(0)}°F (IHX).`,
+        tag: "CODE-TP-IHX-OUT",
+        scoreImpact: -1
+      };
     }
+  } else {
+    // Non-IHX: slight TP#2 heat gain is acceptable
+    if (delta >= 0 && delta <= 2) {
+      return {
+        tpDelta: Number(delta.toFixed(0)),
+        status: `✅ TP#2–TP#3 rise ${delta.toFixed(0)}°F normal.`,
+        tag: "CODE-TP-NONIHX-NORMAL",
+        scoreImpact: 1
+      };
+    } else if (delta < 0) {
+      return {
+        tpDelta: Number(delta.toFixed(0)),
+        status: `⚠️ Unexpected TP#2–TP#3 drop ${Math.abs(delta).toFixed(0)}°F.`,
+        tag: "CODE-TP-NONIHX-DROP",
+        scoreImpact: -1
+      };
+    } else {
+      return {
+        tpDelta: Number(delta.toFixed(0)),
+        status: `⚠️ Excessive TP#2–TP#3 rise ${delta.toFixed(0)}°F.`,
+        tag: "CODE-TP-NONIHX-EXCESS",
+        scoreImpact: -1
+      };
+    }
+  }
+}
+
 
 // ─── Condenser Heat Rejection ΔT expectations ──────────────────────────────────────────── 
 function getExpectedCondDelta(ambient, rh, mode = "ir-shiny", refrigerant = "r134a") {
@@ -1364,6 +1684,43 @@ function getExpectedCondDelta(ambient, rh, mode = "ir-shiny", refrigerant = "r13
 
   return range;
 }
+
+function updateVentMessage() {
+  const ambient = parseFloat(document.getElementById("ambient").value);
+  const vent    = parseFloat(document.getElementById("vent").value);
+  const msgDiv  = document.getElementById("ventMessage");
+
+  if (isNaN(ambient) || isNaN(vent)) {
+    msgDiv.textContent = "";
+    return;
+  }
+
+  // ← use the existing Vent ΔT ranges
+  const { min, max } = getExpectedVentDelta(ambient); 
+
+  const delta = ambient - vent;
+
+  if (delta >= min && delta <= max) {
+    msgDiv.innerHTML = `
+      ✅ Vent’s temp drop of ${delta.toFixed(0)}°F is within the 
+      expected <strong>${min}–${max}°F</strong> range for ${ambient}°F ambient.
+    `;
+  } else if (delta < min) {
+    msgDiv.innerHTML = `
+      ⚠️ Vent's temp drop is too low: ${delta.toFixed(0)}°F (< ${min}°F). 
+      Check airflow (filter, blend-door).
+    `;
+  } else {
+    msgDiv.innerHTML = `
+      ⚠️ Vent's temp drop too high: ${delta.toFixed(0)}°F (> ${max}°F). 
+      Could indicate over-charge or recirculation door fault.
+    `;
+  }
+}
+
+// re-run on either input change
+document.getElementById("ambient").addEventListener("input", updateVentMessage);
+document.getElementById("vent"   ).addEventListener("input", updateVentMessage);
 
 
     // ─── Diagnostic Bar Rendering ─────────────────────────────────────────────
@@ -1436,7 +1793,7 @@ function updateDiagnosticBars(params) {
     "°F"
   );
 
-  // 2) Estimated Fill % + inline charge Δ
+  // 2) System Fill % + inline charge Δ
   const pct     = Math.round(fillPercent);                   // e.g. 98
   const devPct  = pct - 100;                                 // e.g. -2
   const ozDiff  = parseFloat(chargeDiff.toFixed(1));         // e.g. -1.6
@@ -1611,10 +1968,15 @@ function updateDiagnosticBars(params) {
         </div>
   	<div class="report-section" style="border-left: 4px solid #0074D9; margin-top:12px;">
     	<strong>🔧 Tech Tip:</strong><br>
-    	${techTip}
+    	${techTip.tip}
   	</div>
 	`;
-    }
+
+
+
+  const analysis = rootCause();   // 1) run your I-T-T-T logic
+  document.getElementById("triageResults").textContent = analysis;  // 2) dump it into the DOM
+}
 
 
 // ─── Evaporator Load condition ──────────────────────────────────
@@ -1625,7 +1987,7 @@ function detectEvaporatorLoadHigh({ ambient, ventTemp, fillPercent, rh }) {
   	return ventDelta > 30 && properlyCharged && rh > 60;
 }
 
-// ─── Unit conversion helper ───────────────────────────────────────────
+// ─── Unit conversion helper ─────────────────────────────────────
 	/**
  	* Convert a refrigerant quantity between oz, lb, and g.
  	* @param  {number} value    The quantity to convert.
@@ -1656,10 +2018,96 @@ function calculateChargeDifference(factoryCharge, fillPercent, unit = 'oz') {
 	 return { diff: diffUnit, unit };   // ← this return is required!
 }
 
+</script>
 
-// ─── runEvaluation (static & dynamic) ──────────────────────────────────
+
+<script>
+// ===============================
+// OSPF/DSOP Customer Summary Function
+// ===============================
+function buildACCustomerSummary({
+  customer = "Customer",
+  vehicle = "your vehicle",
+  staticPsi,
+  staticPsiLowThresh,
+  staticPsiHighThresh,
+  ambient,
+  superheat,
+  subcooling,
+  ventTemp,
+  ventDelta,
+  expectedVentDeltaMin,
+  expectedVentDeltaMax,
+  needsFilterReminder,
+  chargeStatus,
+  imbalanceDetected
+}) {
+  let message = `Hi ${customer}, here’s an update on your ${vehicle} A/C evaluation: `;
+
+  // 1. Static Pressure edge case
+  if (typeof staticPsi === "number" && typeof staticPsiLowThresh === "number" && typeof staticPsiHighThresh === "number") {
+    if (staticPsi < staticPsiLowThresh) {
+      message += `The A/C system's static pressure (${staticPsi} psi) is lower than expected (${staticPsiLowThresh}–${staticPsiHighThresh} psi for current conditions). This usually means the system is low on refrigerant or has a leak. `;
+    } else if (staticPsi > staticPsiHighThresh) {
+      message += `Your static pressure (${staticPsi} psi) is higher than expected for current conditions (${staticPsiLowThresh}–${staticPsiHighThresh} psi). This may mean overcharging or contamination. `;
+    } else {
+      message += `Your static pressure (${staticPsi} psi) is within the expected range for the current ambient temperature (${ambient}°F). `;
+    }
+  }
+
+  // 2. Superheat edge case
+  if (typeof superheat === "number" && superheat >= 10 && superheat <= 12) {
+    message += `Your superheat reading is ${superheat.toFixed(1)}°F, which is on the high side of normal. The A/C may be working harder or less efficiently than ideal. `;
+  } else if (typeof superheat === "number" && superheat > 15) {
+    message += `Superheat is high (${superheat.toFixed(1)}°F), possibly indicating undercharge or a restriction. `;
+  }
+
+  // 3. Vent ΔT edge case
+  if (typeof ventDelta === "number" && typeof expectedVentDeltaMin === "number" && typeof expectedVentDeltaMax === "number") {
+    if (ventDelta < expectedVentDeltaMin) {
+      message += `Your vent temperature drop (${ventDelta}°F below ambient) is less than expected (should be ${expectedVentDeltaMin}–${expectedVentDeltaMax}°F). A/C isn't cooling as much as it should—possible causes include low refrigerant, airflow restriction, or blend door issues. `;
+    } else if (ventDelta > expectedVentDeltaMax) {
+      message += `The A/C is cooling more than expected (ΔT: ${ventDelta}°F). While that feels cold, it can indicate overcharging or risk of evaporator icing. `;
+    } else {
+      message += `Your vent temperature drop (${ventDelta}°F) is within the expected range. `;
+    }
+  } else if (typeof ventTemp === "number" && typeof ambient === "number") {
+    if (ventTemp > (ambient - 20)) {
+      message += `Your vent temperature is ${ventTemp}°F, but ideally it should be about 20–30°F below the ambient (${ambient}°F). `;
+    }
+  }
+
+  // 4. Filter reminder
+  if (needsFilterReminder) {
+    message += "A filter change is recommended. A dirty cabin filter can reduce airflow and cooling performance. ";
+  }
+
+  // 5. Charge status
+  if (["slightUnder", "severeUnder"].includes(chargeStatus)) {
+    message += "We found the refrigerant charge is low. Even a small loss can affect cooling—recharging will restore performance. ";
+  } else if (chargeStatus === "overcharged") {
+    message += "The system appears overcharged. Recover and refill with the correct amount of refrigerant for best efficiency. ";
+  }
+
+  // 6. Imbalance detected
+  if (imbalanceDetected) {
+    message += "We also detected an imbalance in system pressures or flow, which may point to a mechanical or control issue. Our technician will review further. ";
+  }
+
+  // 7. Close
+  message += "Our technician will continue to monitor your A/C system and run additional tests if needed. We'll keep you updated. Please reach out with questions—your comfort is our top priority!";
+  return message;
+}
+</script>
+
+
+
+<script>
+// ── Main Evaluation Logic: Precheck, Contamination, ITTT, Reporting ──
+
 function runEvaluation() {
-	// 1) Require RO or Customer
+	
+// 1) Require RO or Customer
   	const roVal = document.getElementById("ro").value.trim();
   	const customerVal = document.getElementById("customer").value.trim();
   	if (!roVal && !customerVal) {
@@ -1667,6 +2115,7 @@ function runEvaluation() {
     	alert("Please enter either RO# or Customer Name before proceeding.");
     	return;
   }
+
 	// 2) Require VIN or Vehicle
   	const vinVal = document.getElementById("vin").value.trim();
   	const vehicleVal = document.getElementById("vehicle").value.trim();
@@ -1675,6 +2124,7 @@ function runEvaluation() {
     	alert("Please enter either VIN or Year-Make-Model before proceeding.");
     	return;
   }
+
   // 3) Require ZIP or Ambient
   	const zipVal = document.getElementById("zipCode").value.trim();
   	const ambientStr = document.getElementById("ambient").value.trim();
@@ -1683,6 +2133,7 @@ function runEvaluation() {
    	alert("Please enter either ZIP Code or Ambient Temperature before proceeding.");
     	return;
   }
+
   // 4) Static Pressure
   	if (!requireField("staticPressure", "Static Pressure (PSI)")) return;
   	const refrigerantVal = document.getElementById("refrigerant").value;
@@ -1704,8 +2155,10 @@ function runEvaluation() {
   }
   	document.getElementById("advancedFieldsWrapper").style.display = "block";
   	if (!requireField("factoryCharge", "Factory Charge (oz)")) return;
+
   // 5) High-Side Pressure
   	if (!requireField("highPressure", "High-Side Pressure (PSI)")) return;
+
   // 6) Center Vent Temp
   	if (!requireField("vent", "Center Vent Temp (°F)")) return;
 
@@ -1789,46 +2242,104 @@ const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
     superheat >= 10 && superheat <= 15 &&
     subcooling >= subLow && subcooling <= subHigh;
 
-  // 📍Superheat status string FIX to check Vent air blockage 
-  let superheatStatus = "";
-  if (superheat > 15.1) {
-    superheatStatus = "❌ Superheat High (>15°F) – Restriction suspected.";
-  } else if (superheat < 9.9) {
-    superheatStatus = "❌ Superheat Low (<10°F) – TXV overfeeding suspected.";
-  } else if (superheat >= 10 && superheat <= 15 && percentFillRaw >= 0.95 && percentFillRaw <= 1.05) {
-    superheatStatus = "✅ TXV working in range.";
-  } else if (superheat >= 10 && superheat <= 15 && !isProperlyCharged) {
-    if (isVDC) {
-      superheatStatus = " Double check Evaporator Temp Sensor (ETS) performance for accuracy.";
-    } else {
-      superheatStatus = " Evaporator temp looks normal, but something else isn’t right. Check charge, airflow, and other performance issues.";
-    }
+// 📍Superheat status string FIX to check Vent air blockage 
+  
+let superheatStatus = "";
+  if (superheat > 15) { superheatStatus = "❌ Superheat High (>15°F) – Restriction suspected.";
+  } else if (superheat < 10) { superheatStatus = "❌ Superheat Low (<10°F) – TXV overfeeding suspected.";
+  } else if (superheat >= 10 && superheat <= 15 && percentFillRaw >= 0.95 && percentFillRaw <= 1.05) { superheatStatus = "✅ TXV working in range.";
+  } else if (superheat >= 10 && superheat <= 15 && !isProperlyCharged) { if (isVDC) { superheatStatus = " Double check Evaporator Temp Sensor (ETS) performance for accuracy.";
+  } else { superheatStatus = " Evaporator temp looks normal, but something else isn’t right. Check charge, airflow, and other performance issues.";
+  }
 }
 
+// ─── Build promptFlags for “Ask Autotech” ──────────────
 
-  // ─── Build promptFlags for “Ask Autotech” ─────────────────────────────
-  let chargeStatus = "balanced";
-  if (percentFillRaw < 0.95) {
-    chargeStatus = percentFillRaw >= 0.90 ? "slightUnder" : "severeUnder";
-  } else if (percentFillRaw > 1.05) {
-    chargeStatus = percentFillRaw <= 1.10 ? "slightOver" : "overcharged";
-  }
-  const ventOk = ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max;
-  const imbalanceDetected = !(superheat >= 10 && superheat <= 15) || !(subcooling >= subLow && subcooling <= subHigh);
-  const promptFlags = {
-	chargeStatus, 
-	hasVDC: isVDC, 
-	ventOk, 
-	imbalanceDetected, 
-	needsFilterReminder: ventOk, 
-	vehicleYear: parseInt(vehicleVal), 
-	fillPercent, 
-	subcooling,
-	superheat, 
-	ventTemp, 
-	ambient: ambientNum, 
-	rh
+// 1. Charge status logic
+let chargeStatus = "balanced";
+if (percentFillRaw < 0.95) {
+  chargeStatus = percentFillRaw >= 0.90 ? "slightUnder" : "severeUnder";
+} else if (percentFillRaw > 1.05) {
+  chargeStatus = percentFillRaw <= 1.10 ? "slightOver" : "overcharged";
+}
+
+// 2. Vent ΔT in expected range?
+const ventOk =
+  typeof ventDelta === "number" &&
+  typeof expectedVentRange.min === "number" &&
+  typeof expectedVentRange.max === "number" &&
+  ventDelta >= expectedVentRange.min &&
+  ventDelta <= expectedVentRange.max;
+
+// 3. Imbalance detection (OSPF logic)
+const imbalanceDetected =
+  !(superheat >= 10 && superheat <= 15) ||
+  !(subcooling >= subLow && subcooling <= subHigh);
+
+// 4. Vehicle year extraction (handles YMM as string or number)
+let vehicleYear = vehicleVal;
+if (typeof vehicleVal === "string") {
+  const yearMatch = vehicleVal.match(/\d{4}/);
+  vehicleYear = yearMatch ? parseInt(yearMatch[0], 10) : 0;
+}
+
+// 5. Build the promptFlags object
+const promptFlags = {
+  chargeStatus,
+  hasVDC: !!isVDC, // Boolean for compressor type
+  ventOk,
+  imbalanceDetected,
+  needsFilterReminder: ventOk,
+  vehicleYear,
+  vehicle: document.getElementById("vehicle").value || "",
+  fillPercent: Math.round(percentFillRaw * 100),
+  subcooling: Number(subcooling),
+  superheat: Number(superheat),
+  ventTemp: Number(ventTemp),
+  ambient: Number(ambientNum),
+  rh: Number(rh),
+  serviceInterval: document.getElementById("serviceInterval").value || "Unknown",
+  customer: document.getElementById("customer").value || ""
 };
+
+// 6. Create the flags string for serialization
+const flagsString = Object.entries(promptFlags)
+  .map(([k, v]) => `${k}: ${v}`)
+  .join("; ");
+
+// 7. (Optional) Expose for other modules or chat widget use
+window.latestPromptFlags = promptFlags;
+window.latestFlagsString = flagsString;
+
+
+	// 5. Store for chat widget & external use
+window.latestPromptFlags = promptFlags;
+
+
+
+// At the end of runEvaluation (before modals/advisory blocks)
+const summary = buildACCustomerSummary({
+  customer: document.getElementById("customer").value || "Customer",
+  vehicle: document.getElementById("vehicle").value || "your vehicle",
+  staticPsi: staticPSI,
+  staticPsiLowThresh: Math.floor(staticRange.min),
+  staticPsiHighThresh: Math.ceil(staticRange.max),
+  ambient: ambientNum,
+  superheat: superheat,
+  subcooling: subcooling,
+  ventTemp: ventTemp,
+  ventDelta: ventDelta,
+  expectedVentDeltaMin: expectedVentRange.min,
+  expectedVentDeltaMax: expectedVentRange.max,
+  needsFilterReminder: Boolean(promptFlags.needsFilterReminder),
+  chargeStatus: promptFlags.chargeStatus,
+  imbalanceDetected: promptFlags.imbalanceDetected
+});
+document.getElementById("customerSummary").textContent = summary;
+//document.getElementById("customerSummary").style.display = "block";
+
+
+
 
   // ─── Confidence breakdown score ───────────────────────────────────────
   const scorePct = Math.round([
@@ -1889,7 +2400,7 @@ const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
       </div>`;
   }
 
-  // ─── Relief Valve note if flagged & factory charge OK ─────────────────
+  // ─── Relief Valve note if flagged & factory charge OK ──
   let reliefValveNote = "";
   const factoryChargeOK = chargedStatus === "charged" && fillPercent >= 98 && fillPercent <= 102;
   if (pressureRelief === "yes" && factoryChargeOK) {
@@ -2106,14 +2617,12 @@ const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
 
 </div>
 
-
-
   </div>
     ${techNotes ? `<div class="report-section"><strong>Technician Notes:</strong><br>${techNotes.replace(/\n/g, "<br>")}</div>` : ""}
     ${attachedImages.map(src => `<img src="${src}" style="max-width:150px; margin-top:10px;" />`).join("")}
   `;
 
-  // ─── Update diagnostic bars ───────────────────────────────────────
+  // ─── Update diagnostic bars ──────────────────────────────
   updateDiagnosticBars({
     	ambient: ambientNum, rh,
     	ventDelta, expectedVentRange,
@@ -2127,6 +2636,7 @@ const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
 	chargeUnit,  
 	chargeTolerance: 2
 });
+cw_askReport();
 
 document.querySelectorAll('.tooltip').forEach(wrapper => {
   wrapper.addEventListener('click', () => {
@@ -2135,13 +2645,11 @@ document.querySelectorAll('.tooltip').forEach(wrapper => {
 });
 
 
-
-
-  // ─── Store latest report for chat widget ───────────────────────────
+  // ─── Store latest report for chat widget ────────────────────
   window.latestReportText = stripHTML(document.getElementById("output").innerHTML);
   window.latestPromptFlags = promptFlags;
  
- // ─── Service‐interval advisory (insert here) ──────────────────────
+ // ─── Service‐interval advisory (insert here)──────────────────
   const serviceInterval = document.getElementById("serviceInterval").value;
   if (serviceInterval === "Never") {
     const chargePct = window.latestPromptFlags.chargeStatus; // "slightUnder", "severeUnder", etc.
@@ -2174,83 +2682,245 @@ document.querySelectorAll('.tooltip').forEach(wrapper => {
   }
 }
 
-    
-
 document.getElementById("evaluateBtn").addEventListener("click", runEvaluation);
 </script>
 
 <script>
-
-// A/C Tech Tip Generator with Range-Based Condition Outputs
-
 function getACTechTip({ superheat, subcooling, fillPercent, ambient, ventTemp, rh }) {
-  const sh = parseFloat(superheat);
-  const sc = parseFloat(subcooling);
+  // Defensive parse
+  const sh = Number(superheat);
+  const sc = Number(subcooling);
+  const fc = Number(fillPercent);
+  const amb = Number(ambient);
+  const vt = Number(ventTemp);
+  const humidity = Number(rh);
 
-  // Define superheat & subcooling condition ranges
+  // Helper to check valid numbers
+  const isNumber = v => typeof v === "number" && !isNaN(v);
+
+  // Compute Vent Delta and expected range
+  const ventDelta = isNumber(amb) && isNumber(vt) ? amb - vt : null;
+  const expectedVentRange = getExpectedVentDelta(amb); // returns {min, max}
+
+  let ventDeltaStatus = "Missing";
+  if (ventDelta !== null) {
+    if (ventDelta < expectedVentRange.min) ventDeltaStatus = "Low";
+    else if (ventDelta > expectedVentRange.max) ventDeltaStatus = "High";
+    else ventDeltaStatus = "Normal";
+  }
+
+  // Calculate the expected actual vent temperature range
+  const expectedVentMin = amb - expectedVentRange.max; // coldest expected vent temp
+  const expectedVentMax = amb - expectedVentRange.min; // warmest expected vent temp
+
+  // Superheat & Subcooling Range
   const SH_RANGE = { low: [0, 9], normal: [10, 15], high: [16, Infinity] };
   const SC_RANGE = { low: [0, 9], normal: [10, 20], high: [21, Infinity] };
 
-  const isInRange = (value, [min, max]) => value >= min && value <= max;
-  const shRange = isInRange(sh, SH_RANGE.low)
-    ? "low"
-    : isInRange(sh, SH_RANGE.normal)
-    ? "normal"
-    : "high";
+  const inRange = (val, [min, max]) => isNumber(val) && val >= min && val <= max;
+  const shRange =
+    inRange(sh, SH_RANGE.low) ? "low" :
+    inRange(sh, SH_RANGE.normal) ? "normal" : "high";
+  const scRange =
+    inRange(sc, SC_RANGE.low) ? "low" :
+    inRange(sc, SC_RANGE.normal) ? "normal" : "high";
 
-  const scRange = isInRange(sc, SC_RANGE.low)
-    ? "low"
-    : isInRange(sc, SC_RANGE.normal)
-    ? "normal"
-    : "high";
+  // High evaporator load, risk of icing (real world nuance)
+  if (
+    ventDeltaStatus === "Normal" &&
+    fc >= 95 && fc <= 105 &&
+    humidity > 60 &&
+    ventDelta > 30
+  ) {
+    return {
+      tip: `High evaporator load detected: Large temperature drop from outside to vent air (${ventDelta}°F; expected: ${expectedVentRange.min}–${expectedVentRange.max}°F). Risk of evaporator icing—ensure recirc mode is working and inspect cabin filter and TXV operation.`,
+      overrideITTT: false
+    };
+  }
 
-  const ventDelta =
-    typeof ambient === "number" && typeof ventTemp === "number"
-      ? ambient - ventTemp
-      : null;
+  // Typical diagnostic patterns (all are ITTT)
+  if (shRange === "high" && scRange === "low") {
+    return {
+      tip: "High superheat (>15°F) & low subcooling (<10°F): This pattern almost always indicates an undercharged system. Confirm refrigerant type and level, and check for leaks.",
+      overrideITTT: false
+    };
+  }
+  if (shRange === "low" && scRange === "high") {
+    return {
+      tip: "Low superheat (<10°F) & high subcooling (>20°F): System is likely overcharged. Check for excess refrigerant, poor airflow, or a restricted evaporator.",
+      overrideITTT: false
+    };
+  }
+  if (shRange === "low" && scRange === "low") {
+    return {
+      tip: "Low superheat (<10°F) & low subcooling (<10°F): TXV stuck open or orifice tube is oversized. May require flushing or metering device inspection.",
+      overrideITTT: false
+    };
+  }
+  if (shRange === "high" && scRange === "high") {
+    return {
+      tip: "High superheat (>15°F) & high subcooling (>20°F): Likely restriction with liquid overload. Inspect filter-dryer and metering device for blockage.",
+      overrideITTT: false
+    };
+  }
+  if (shRange === "normal" && scRange === "high") {
+    return {
+      tip: "Normal superheat (10–15°F) & high subcooling (>20°F): Possible restriction or mild overcharge. Check metering device, condenser outlet, and verify charge accuracy.",
+      overrideITTT: false
+    };
+  }
+  if (shRange === "high" && scRange === "normal") {
+    return {
+      tip: "High superheat (>15°F) & normal subcooling (10–20°F): TXV not feeding enough refrigerant—could be low charge or evaporator blockage.",
+      overrideITTT: false
+    };
+  }
+  if (shRange === "low" && scRange === "normal") {
+    return {
+      tip: "Low superheat (<10°F) & normal subcooling (10–20°F): Evaporator may be overfed—risk of compressor flooding. Check metering device and airflow.",
+      overrideITTT: false
+    };
+  }
+  if (shRange === "normal" && scRange === "low") {
+    return {
+      tip: "Normal superheat (10–15°F) & low subcooling (<10°F): TXV sensing issue or undercharge. Verify refrigerant quantity and TXV bulb contact.",
+      overrideITTT: false
+    };
+  }
 
-  const highEvapLoad =
-    ventDelta !== null &&
-    fillPercent >= 95 &&
-    fillPercent <= 105 &&
-    rh > 60 &&
-    ventDelta > 30;
+  // If ventDelta is missing, warn about missing data
+  if (ventDeltaStatus === "Missing") {
+    return {
+      tip: "Unable to analyze A/C system performance due to missing or invalid vent or ambient temperature readings.",
+      overrideITTT: false
+    };
+  }
 
-  if (highEvapLoad)
-  return "High evaporator load: Large ambient-to-vent delta (>30°F) and high humidity. Risk of icing. Engage recirc mode, inspect blower, cabin filter, and TXV.";
+  // If ventDelta is outside expected for load, flag as possible airflow or mode fault
+  if (ventDeltaStatus === "Low") {
+    return {
+      tip: `The vent is not cooling as much as expected: ΔT = ${ventDelta}°F (expected: ${expectedVentRange.min}–${expectedVentRange.max}°F drop from ${amb}°F ambient). Actual vent temp: ${vt}°F (expected: ${expectedVentMin}–${expectedVentMax}°F). This suggests reduced cooling performance—possible causes include airflow restriction, dirty cabin filter, blend door issue, or undercharge.`,
+      overrideITTT: false
+    };
+  }
+  if (ventDeltaStatus === "High") {
+    let tipMsg = `The vent is cooling more than expected: ΔT = ${ventDelta}°F (expected: ${expectedVentRange.min}–${expectedVentRange.max}°F drop from ${amb}°F ambient). Actual vent temp: ${vt}°F (expected: ${expectedVentMin}–${expectedVentMax}°F). This means the system is too cold, which often points to overcharging, recirculation door stuck on max, or improper vent setting. Overcharge can cause evaporator icing or even compressor damage unless corrected.`;
+    if (ventDelta > 40) {
+      tipMsg += " ⚠️ WARNING: Extreme vent cooling indicates high risk of compressor or evaporator failure. Immediate correction recommended.";
+    }
+    return {
+      tip: tipMsg,
+      overrideITTT: false
+    };
+  }
 
-if (shRange === "high" && scRange === "low")
-  return "High superheat (>15°F) & low subcooling (<10°F): Almost always an undercharged system. Confirm refrigerant level, check for leaks.";
-
-if (shRange === "low" && scRange === "high")
-  return "Low superheat (<10°F) & high subcooling (>20°F): Likely overcharge. Check for excess refrigerant, poor airflow, or restricted evaporator.";
-
-if (shRange === "low" && scRange === "low")
-  return "Low superheat (<10°F) & low subcooling (<10°F): TXV stuck open or oversized orifice. May need system flushing or metering device inspection.";
-
-if (shRange === "high" && scRange === "high")
-  return "High superheat (>15°F) & high subcooling (>20°F): Likely restriction and liquid overload. Inspect filter-dryer or metering device.";
-
-if (shRange === "normal" && scRange === "high")
-  return "Normal superheat (10–15°F) & high subcooling (>20°F): Possible restriction or mild overcharge. Check metering device, condenser outlet, and verify charge accuracy.";
-
-if (shRange === "high" && scRange === "normal")
-  return "High superheat (>15°F) & normal subcooling (10–20°F): TXV not feeding enough refrigerant. Could be low charge or evaporator blockage.";
-
-if (shRange === "low" && scRange === "normal")
-  return "Low superheat (<10°F) & normal subcooling (10–20°F): Evaporator may be overfed—risk of compressor flooding. Check metering device and airflow.";
-
-if (shRange === "normal" && scRange === "low")
-  return "Normal superheat (10–15°F) & low subcooling (<10°F): TXV sensing issue or undercharge. Verify refrigerant quantity and TXV bulb contact.";
-
-return "The A/C system isn’t showing any typical signs of a refrigerant flow problem. If the original concern isn’t active anymore, everything appears to be working as it should right now.";
+  // Default: system appears normal, suggest ITTT override
+  return {
+    tip: "The A/C system isn’t displaying any common signs of a refrigerant flow issue. If the original concern is no longer present, then the system appears to be operating normally at this time.",
+    overrideITTT: true
+  };
 }
 </script>
 
+<script>
 
-<Script>
+ // ─── buildAutotechPrompt ─────────────────────────────────────────────────
+function buildAutotechPrompt(rawReport, flagBlock, customer, vehicle) {
+let intro = `Hi ${customer}, we understand how frustrating it can be when your vehicle’s A/C isn’t keeping you comfortable. Rest assured, we’ve assigned one of our experienced ASE Certified Technicians to your beautiful ${vehicle} to thoroughly evaluate the system. After reviewing the results from our checks, here’s what we’ve found so far:`;
 
-// ─── DOWNLOAD PDF ─────────────────────────────────────────────────────
+  let body = "";
+  if (flagBlock.chargeStatus === "balanced") {
+    body = flagBlock.ventOk
+      ? "Everything looks solid—your pressures and airflow are right where they should be."
+      : "Your pressures look good, but the vents aren’t blowing as cold as expected—this may point to a mechanical or airflow issue. We'll verify the root cause for you.";
+  } else if (flagBlock.chargeStatus === "slightUnder") {
+    body = `A simple refrigerant top-off will correct it—at ${vehicleAge} years old, a small undercharge is common due to normal seepage. Even small losses can reduce cooling, so we recommend servicing every 1–2 years.`;
+  } else if (["severeUnder", "overcharged"].includes(flagBlock.chargeStatus)) {
+    body = "A full refrigerant recovery & factory recharge is recommended.";
+  }
+
+  if (flagBlock.hasVDC && flagBlock.imbalanceDetected) {
+    body += " The compressor's variable pressure feature may be masking an underlying fault.";
+  }
+
+  return `${intro} ${body}`;
+}
+
+
+//! ─── CHAT WIDGET HELPERS  Script below ───────────────────────────
+ 
+    function cw_appendMessage(text, cls) {
+    const cw_messagesDiv = document.getElementById("cw_messages");
+    const d = document.createElement("div");
+    d.className = "cw_message " + cls;
+    d.textContent = text;
+    cw_messagesDiv.appendChild(d);
+    cw_messagesDiv.scrollTop = cw_messagesDiv.scrollHeight;
+  }
+
+
+// ──────────── Staring the ASK Report ────────────
+async function cw_askReport() {
+  const serviceInterval = document.getElementById("serviceInterval").value;
+  if (!serviceInterval) {
+    alert("Please select how long since last A/C service before asking.");
+    return;
+  }
+
+  // 1) grab the current report
+  const rawReport = stripHTML(document.getElementById("output").innerHTML);
+  if (!rawReport) {
+    alert("Run the evaluation first.");
+    return;
+  }
+
+  // 2) build flags
+  const flagsCopy = Object.assign({}, window.latestPromptFlags, { serviceInterval });
+
+  // 3) serialize flags into a string
+  const flagsString = Object.entries(flagsCopy)
+    .map(([key, val]) => `${key}: ${val}`)
+    .join("; ");
+
+  // 4) read customer and vehicle
+  const customer = document.getElementById("customer").value.trim() || "Customer";
+  const vehicle  = document.getElementById("vehicle").value.trim()  || "your vehicle";
+
+  // 5) build the full prompt
+  const humanPrompt = buildAutotechPrompt(rawReport, flagsCopy, customer, vehicle);
+  const fullQuestion = `Flags — ${flagsString}\n\n${humanPrompt}`;
+
+  // 6) send to chat proxy
+  const cw_messagesDiv = document.getElementById("cw_messages");
+  cw_messagesDiv.innerHTML = "";
+  cw_appendMessage("…analyzing report…", "cw_assistant");
+
+  try {
+    const res = await fetch("https://ac-chat-proxy.peter-sarantidis.workers.dev", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: fullQuestion })
+    });
+    const data = await res.json();
+    cw_messagesDiv.removeChild(cw_messagesDiv.lastChild);
+
+    if (data.reply) {
+      cw_appendMessage(data.reply, "cw_assistant");
+      const summaryEl = document.getElementById("customerSummary");
+      if (summaryEl) summaryEl.textContent = data.reply;
+    } else {
+      cw_appendMessage("Error: " + (data.error || "No reply"), "cw_assistant");
+    }
+  } catch (err) {
+    cw_messagesDiv.removeChild(cw_messagesDiv.lastChild);
+    cw_appendMessage("Network error: " + err.message, "cw_assistant");
+  } 
+}
+
+</script>
+
+<script>
+//─── DOWNLOAD PDF ────────────────────────────────>
 async function downloadPDF() {
   const reportEl = document.getElementById("output");
   if (!reportEl || !reportEl.innerHTML.trim()) {
@@ -2319,199 +2989,5 @@ async function downloadPDF() {
   }
 }
 </script>
-
-<script> // ─── buildAutotechPrompt ─────────────────────────────────────────────────
-function buildAutotechPrompt(rawReport, flagBlock, customer, vehicle) {
-  let intro = `Hi ${customer}, we understand how frustrating it can be when your vehicle’s A/C isn’t keeping you comfortable. Rest assured, we’ve assigned one of our experienced ASE Certified Technicians to your beautiful ${vehicle} to thoroughly evaluate the system. After reviewing the results from our checks, here’s what we’ve found so far:`;
-
-  // 1. Check vent performance first
-  if (flagBlock.ventOk) {
-    return `${intro} Everything looks solid—your pressures and airflow are right where they should be.\n\nIs there a concern we need to evaluate?`;
-  }
-
-  // 2. Continue with other logic if vents are NOT OK
-  let body = "";
-  if (flagBlock.chargeStatus === "balanced") {
-    body = "Your pressures look good, but the vents aren’t blowing as cold as expected—this may point to a mechanical or airflow issue. We'll verify the root cause for you.";
-  } else if (flagBlock.chargeStatus === "slightUnder") {
-    // Make sure vehicleAge is defined or add as a parameter
-    const vehicleAge = new Date().getFullYear() - (flagBlock.vehicleYear || new Date().getFullYear());
-    body = `A simple refrigerant top-off will correct it—at ${vehicleAge} years old, a small undercharge is common due to normal seepage. Even small losses can reduce cooling, so we recommend servicing every 1–2 years.`;
-  } else if (["severeUnder", "overcharged"].includes(flagBlock.chargeStatus)) {
-    body = "A full refrigerant recovery & factory recharge is recommended.";
-  }
-
-  if (flagBlock.hasVDC && flagBlock.imbalanceDetected) {
-    body += " The compressor's variable pressure feature may be masking an underlying fault.";
-  }
-
-  return `${intro} ${body}`;
-}
-
-</script>
-<script>
-  // ─── CHAT WIDGET HELPERS ──────────────────────────────────────────────────────────
-  function cw_appendMessage(text, cls) {
-    const cw_messagesDiv = document.getElementById("cw_messages");
-    const d = document.createElement("div");
-    d.className = "cw_message" + cls;
-    d.textContent = text;
-    cw_messagesDiv.appendChild(d);
-    cw_messagesDiv.scrollTop = cw_messagesDiv.scrollHeight;
-  }
-
-async function cw_sendQuestion() {
-  const cw_messagesDiv = document.getElementById("cw_messages");
-  const cw_userInput = document.getElementById("cw_userInput");
-  const question = cw_userInput.value.trim();
-  if (!question) return;
-
-  cw_appendMessage(question, "cw_user");
-  cw_userInput.value = "";
-  document.getElementById("cw_sendBtn").disabled = true;
-  cw_appendMessage("…thinking…", "cw_assistant");
-
-  try {
-    const res = await fetch("https://ac-chat-proxy.peter-sarantidis.workers.dev", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question })
-    });
-    const data = await res.json();
-    cw_messagesDiv.removeChild(cw_messagesDiv.lastChild);
-
-if (data.reply) {
-  const cleanedReply = cleanAssistantReply(data.reply);
-  cw_appendMessage(cleanedReply, "cw_assistant");
-  //document.getElementById("customerSummary").textContent = cleanedReply;
-} else {
-  cw_appendMessage("Error: " + (data.error || "No reply"), "cw_assistant");
-}
-  } catch (err) {
-    cw_messagesDiv.removeChild(cw_messagesDiv.lastChild);
-    cw_appendMessage("Network error: " + err.message, "cw_assistant");
-  } finally {
-    document.getElementById("cw_sendBtn").disabled = false;
-    document.getElementById("cw_userInput").focus();
-  }
-}
-
-async function cw_askReport() {
-  const serviceInterval = document.getElementById("serviceInterval").value;
-  if (!serviceInterval) {
-    alert("Please select how long since last A/C service before asking.");
-    return;
-  }
-
-  // 1) grab the current report
-  const rawReport = stripHTML(document.getElementById("output").innerHTML);
-  if (!rawReport) {
-    alert("Run the evaluation first.");
-    return;
-  }
-
-  // 2) build flags
-  const flagsCopy = Object.assign({}, window.latestPromptFlags, { serviceInterval });
-
-  // 3) read customer and vehicle from the inputs
-  const customer = document.getElementById("customer").value.trim() || "Customer";
-  const vehicle   = document.getElementById("vehicle").value.trim()  || "your vehicle";
-
-  // 4) build the full prompt
-  const fullPrompt = buildAutotechPrompt(rawReport, flagsCopy, customer, vehicle);
-
-  // 5) send to chat proxy
-  const cw_messagesDiv = document.getElementById("cw_messages");
-  cw_messagesDiv.innerHTML = "";
-  cw_appendMessage("…thinking…", "cw_assistant");
-
-  try {
-    const res = await fetch("https://ac-chat-proxy.peter-sarantidis.workers.dev", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: fullPrompt })
-    });
-    const data = await res.json();
-    cw_messagesDiv.removeChild(cw_messagesDiv.lastChild);
-
-if (data.reply) {
-  const cleanedReply = cleanAssistantReply(data.reply);
-  cw_appendMessage(cleanedReply, "cw_assistant");
-} else {
-  cw_appendMessage("Error: " + (data.error || "No reply"), "cw_assistant");
-}
-  } catch (err) {
-    cw_messagesDiv.removeChild(cw_messagesDiv.lastChild);
-    cw_appendMessage("Network error: " + err.message, "cw_assistant");
-  }
-}
-
-// --- DEDUPLICATION & BRANDING CLEANUP FOR LLM RESPONSE ---
-function cleanAssistantReply(raw) {
-  // Remove branding line if present
-  let cleaned = raw.replace(/^A\/C Triage by Autotech Intelligence\s*\n?/i, "");
-  // Split into lines, filter duplicates, join
-  const lines = cleaned.split('\n').map(line => line.trim()).filter(Boolean);
-  const uniqueLines = [];
-  lines.forEach(line => {
-    if (!uniqueLines.includes(line)) uniqueLines.push(line);
-  });
-  return uniqueLines.join('\n\n'); // adds spacing between distinct lines
-}
-
-  function formatBotReply(reply) {
-    return reply
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // bold titles
-      .replace(/\n/g, '<br><br>');                        // clear line spacing
-  }
-
-  async function sendMessage() {
-    const input = document.getElementById("chat-input");
-    const log = document.getElementById("chat-log");
-    const userText = input.value.trim();
-
-    if (!userText) return;
-
-    log.innerHTML += `<p class="user-message">${userText}</p>`;
-    input.value = "";
-    log.innerHTML += `<p class="bot-message">...</p>`;
-
-    const botMessages = log.getElementsByClassName("bot-message");
-    const latest = botMessages[botMessages.length - 1];
-
-    try {
-      const res = await fetch("https://ac-chat-proxy.peter-sarantidis.workers.dev", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: userText })
-      });
-      const data = await res.json();
-      latest.innerHTML = formatBotReply(data.reply);
-    } catch (e) {
-      latest.textContent = "Error: Could not connect.";
-      console.error(e);
-    }
-
-    log.scrollTop = log.scrollHeight;
-  }
-  // ─── REGISTER BUTTON & INPUT EVENT LISTENERS ───────────────────────────────────────
-  document.addEventListener("DOMContentLoaded", () => {
-    const cw_sendBtn   = document.getElementById("cw_sendBtn");
-    const askReportBtn = document.getElementById("askReportBtn");
-    const cw_userInput = document.getElementById("cw_userInput");
-document.getElementById("printBtn").addEventListener("click", function() {
-  window.print();
-});
-
-    cw_sendBtn.addEventListener("click", cw_sendQuestion);
-    askReportBtn.addEventListener("click", cw_askReport);
-
-    cw_userInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        cw_sendQuestion();
-      }
-    });
-  });
-  </script>
 </body>
 </html>
