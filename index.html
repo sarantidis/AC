@@ -1,15 +1,12 @@
-working 3.9.2c
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>❄️ A/C Triage Pro v3.9.3 Working beta</title>
-  <style>
-label {
-  font-weight: bold !important;
-}
+  <title>❄️ A/C Triage Pro</title>
+  
+<style>
 
 #advancedFieldsWrapper {
   display: none;
@@ -59,15 +56,12 @@ input, select, textarea {
 }
 
 label {
+  display: block;
   font-size: 0.85em;     /* Keeps label subtle */
   font-weight: 600;      /* Still readable */
   margin-bottom: 4px;
 }
-    label {
-      display: block;
-      margin-bottom: 3px;
-      font-size: .90em;
-    }
+
     input, select, textarea {
       width: 100%;
       font-size: 1em;
@@ -75,6 +69,7 @@ label {
       box-sizing: border-box;
       margin-bottom: 0;
     }
+
     /* flash animation */
     @keyframes flashBorder {
       0%, 100% { box-shadow: 0 0 0 3px rgba(255,0,0,0.9); }
@@ -344,21 +339,23 @@ label {
   </div>
 
 <!-- Accountability Modal: Tech Name Confirmation BEFORE static test -->
-<div id="preStaticModal" class="modal">
+<div id="confirmationModal" class="modal">
   <div class="modal-content" style="max-width:420px;">
-    <h3>⚠️ A/C Refrigerant Identification Warning</h3>
-    <ul style="font-size: 0.98em;">
-      <li><b>ALWAYS</b> use a <b>quality manifold gauge set</b> to verify static pressure and refrigerant type before connecting any recovery/recharge machine.</li>
-      <li><b>Do NOT</b> connect your recovery machine or perform a dynamic test until you have confirmed the correct refrigerant and static pressure is in range for your selected refrigerant type.</li>
-      <li>Running recovery or charging on a contaminated (e.g. R-134a in R-1234yf system) vehicle can permanently contaminate your equipment.</li>
-    </ul>
+<h3>⚠️ Technician Confirmation – EPA Section 609</h3>
+  <ul style="font-size: 0.98em; margin-bottom: 14px;">
+    <li><b>Federal law</b> requires Section 609 Certification to recover or service automotive A/C refrigerant.</li>
+    <li><b>ALWAYS</b> verify the Refrigerant Type and System Label before connecting any recovery or recharge machine.</li>
+    <li>Use a <b>quality manifold gauge set</b> and <b>calibrated thermometer</b> to confirm static pressure.</li>
+    <li><b>Do NOT proceed</b> unless refrigerant type and static pressure are both correct for this system.</li>
+    <li><b>Warning:</b> Recovering or charging a system with contaminated or incorrect refrigerant (such as R-134a in an R-1234yf system) can <b>permanently damage your equipment</b>.</li>
+  </ul>
     <div style="margin-top:12px;">
       <label for="techNameInput" style="display:block;margin-bottom:6px;font-size:0.98em;">
         Technician Name (required for confirmation):
       </label>
       <input type="text" id="techNameInput" autocomplete="off" placeholder="Enter your name here…" />
     </div>
-    <button id="preStaticContinueBtn" disabled style="margin-top:14px;">Continue</button>
+    <button id="confirmationContinueBtn" disabled style="margin-top:14px;">Continue</button>
   </div>
 </div>
 
@@ -445,6 +442,8 @@ label {
  Read instruction on How to Start 🤔
 </button>
 
+<div id="reportTechName" style="font-weight: bold; margin: 1em 0 0.5em 0;"></div>
+
 
   <!-- FORM FIELDS -->
   <div class="form-row">
@@ -470,6 +469,21 @@ autoToggleIHXFromVIN();"/>
 
     </div>
   </div>
+<div class="form-cell">
+  <label for="customerConcern"><strong>Customer’s A/C Concern:</strong></label>
+  <select id="customerConcern" required>
+    <option value="" disabled selected>Select one…</option>
+    <option value="not_cold">Not cold enough at vents</option>
+    <option value="no_operation">A/C does not operate at all</option>
+    <option value="intermittent">Intermittent cooling</option>
+    <option value="strange_noise">Strange noise when A/C is on</option>
+    <option value="odor">Musty or foul odor from vents</option>
+    <option value="blows_hot">Blows hot air only</option>
+    <option value="weak_airflow">Weak airflow from vents</option>
+    <option value="other">Other (describe below)</option>
+  </select>
+  <textarea id="concernDetail" placeholder="Describe concern (if Other)..." style="display:none;"></textarea>
+</div>
 
   <div id="timestamp" style="margin: 8px 0; font-weight: bold;"></div>
   <!-- REFRIGERANT TYPE -->
@@ -484,7 +498,7 @@ autoToggleIHXFromVIN();"/>
   </div>
 
     <div class="form-cell">
-      <label for="zipCode" style="font-size: 0.9em;">ZIP Code (for weather):</label>
+      <label for="zipCode" style="font-size: 0.9em;">⛅️ ZIP Code (for weather):</label>
       <input type="text" id="zipCode" maxlength="5" placeholder="e.g. 77001" style="width: 20%;" />
       <small id="weatherStatus" style="color: blue;"></small>
     </div>
@@ -735,7 +749,7 @@ autoToggleIHXFromVIN();"/>
 
 
   <footer style="text-align: center; margin-top: 40px; font-size: 0.85em; color: #666;">
-    ©2025 Peter Sarantidis – ❄️ A/C Triage Pro v3.9 X βeta – ASE Master Tech – Advanced SME
+    ©2025 Peter Sarantidis – ❄️ A/C Triage Pro v3.9.2.f βeta – ASE Master Tech – Advanced SME
   </footer>
 
 
@@ -876,8 +890,10 @@ function rootCause() {
   if (percentFill > 105) causes.push("Over-charged system (recover excess refrigerant).");
 
   // airflow / vent
-  if (vent < ventRange.min) causes.push("Low Vent ΔT → poor airflow (dirty blower/filter or blend-door fault).");
-  if (vent > ventRange.max) causes.push("High Vent ΔT → possible over-charge or recirc door stuck.");
+const ventDelta = ambient - vent; // actual vent temp drop
+
+if (ventDelta < ventRange.min) causes.push("Low Vent ΔT → poor airflow (dirty blower/filter or blend-door fault).");
+if (ventDelta > ventRange.max) causes.push("High Vent ΔT → possible over-charge or recirc door stuck.");
 
   // condenser
   if (condSat - ambient < condRange.min) causes.push("Low Condenser ΔT → restricted condenser airflow or low refrigerant.");
@@ -1087,53 +1103,6 @@ function flashField(id) {
 
 
 <script>
-// --- Modal helpers ---
-function showModal(id) {
-  const modal = document.getElementById(id);
-  if (modal) modal.style.display = "flex";
-}
-function hideModal(id) {
-  const modal = document.getElementById(id);
-  if (modal) modal.style.display = "none";
-}
-
-// --- Accountability Modal Logic ---
-document.addEventListener("DOMContentLoaded", function() {
-  window.preStaticModalShown = false;
-  window.techName = "";
-
-  document.getElementById("ro").addEventListener("input", () => {
-    window.preStaticModalShown = false; window.techName = "";
-  });
-  document.getElementById("vin").addEventListener("input", () => {
-    window.preStaticModalShown = false; window.techName = "";
-  });
-
-  document.getElementById("ambient").addEventListener("input", function() {
-    if (!window.preStaticModalShown && this.value.trim() !== "") {
-      window.preStaticModalShown = true;
-      showModal("preStaticModal");
-      document.getElementById("staticPressure").disabled = true;
-    }
-  });
-
-  const techNameInput = document.getElementById("techNameInput");
-  const continueBtn = document.getElementById("preStaticContinueBtn");
-  techNameInput.addEventListener("input", function() {
-    continueBtn.disabled = (this.value.trim() === "");
-  });
-  continueBtn.addEventListener("click", function() {
-    window.techName = techNameInput.value.trim();
-    hideModal("preStaticModal");
-    document.getElementById("staticPressure").disabled = false;
-    document.getElementById("staticPressure").focus();
-  });
-});
-</script>
-
-
-
-<script>
 // ── Global Utility Functions & Shared Constants ──
 const STATIC_LOW_BUFFER  = 5; // psi buffer for low side check
 const STATIC_HIGH_BUFFER = 5; // psi buffer for high side check
@@ -1280,118 +1249,136 @@ function stripHTML(html) {
 </script>
 
 <script>
-  // ─── Evaluate Static Pressure (on ambient/static input) ─────────────────
-  function evaluateStaticPressure() {
-    const ambient = parseFloat(document.getElementById("ambient").value);
-    const refrigerant = document.getElementById("refrigerant").value;
-    const staticPSI = parseFloat(document.getElementById("staticPressure").value);
-    const staticDisplay = document.getElementById("staticPressureRangeDisplay");
-    const output = document.getElementById("output");
+// ─── Evaluate Static Pressure (on ambient/static input) ─────────────────
+function evaluateStaticPressure() {
+  const ambient = parseFloat(document.getElementById("ambient").value);
+  const refrigerant = document.getElementById("refrigerant").value;
+  const staticPSI = parseFloat(document.getElementById("staticPressure").value);
+  const staticDisplay = document.getElementById("staticPressureRangeDisplay");
+  const output = document.getElementById("output");
 
-    if (isNaN(ambient)) {
-      staticDisplay.innerHTML = `🫧 Expected Static Pressure (Engine Off): <em>Enter ambient temp!</em>`;
-      output.innerHTML = `
-        <div class="report-section" style="border-left: 4px solid gray;">
-          <strong>🌡️ Ambient Temperature Required</strong><br>
-          Please enter a valid ambient temperature to calculate the expected static pressure range.
-        </div>`;
-      return;
-    }
-
-    const range = getStaticPressureRange(ambient, refrigerant);
-    // round down min, round up max
-    const minVal = Math.floor(range.min);
-    const maxVal = Math.ceil(range.max);
-
-    if (isNaN(staticPSI)) {
-      staticDisplay.innerHTML = `
-        🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
-        <strong>${minVal.toFixed(0)} ~ ${maxVal.toFixed(0)} psi</strong><br>
-        <em>Enter Static Pressure (PSI) to diagnose fill state.</em>`;
-      output.innerHTML = `
-        <div class="report-section" style="border-left: 4px solid gray;">
-          <strong>📝 Awaiting Static PSI Input</strong><br>
-          Please enter a static pressure reading to determine system condition.<br>
-          Use the displayed expected range for guidance.
-        </div>`;
-      return;
-    }
-
-    // Undercharged
-    if (staticPSI < range.min) {
-      staticDisplay.innerHTML = `
-        🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
-        <strong>${minVal.toFixed(0)} ~ ${maxVal.toFixed(0)} psi</strong><br>
-        <strong>⚠️ Undercharged – STOP.</strong><br>
-        Static pressure is below expected range. Perform a leak test, recover refrigerant, and recharge to factory specs.`;
-      document.getElementById("advancedFieldsWrapper").style.display = "none";
-      
-  output.innerHTML = `
-    <div class="report-section" style="border-left: 4px solid red;">
-      <strong>❌ Undercharged System:</strong><br>
-      Static PSI is below the minimum expected range.<br>
-      Recommend recover/recharge and leak test before further diagnostics.
-    </div>
-  `;
-  return;
-}
-
-    // Overcharged or contamination (significantly above +10 psi)
-    if (staticPSI > range.max + 10) {
-      staticDisplay.innerHTML = `
-        🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
-        <strong>${minVal.toFixed(0)} ~ ${maxVal.toFixed(0)} psi</strong><br>
-        <strong>🔴 Above Range – Possible Non-Condensables</strong><br>
-        ⚠️ Pressure is well above expected. Let system acclimate, then identify refrigerant and retest.`;
-      document.getElementById("advancedFieldsWrapper").style.display = "none";
-      output.innerHTML = `
-        <div class="report-section" style="border-left: 4px solid red;">
-          <strong>Measured Static Pressure:</strong> ${staticPSI} psi at ${ambient}°F<br><br>
-          <strong>🔴 High Static Pressure:</strong><br>
-          The pressure exceeds expected range significantly, possibly indicating air contamination or incorrect refrigerant.<br>
-          Allow full acclimation, then identify refrigerant and retest before recovery.
-        </div>`;
-      return;
-    }
-
-    // Slightly high
-    if (staticPSI > range.max) {
-      staticDisplay.innerHTML = `
-        🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
-        <strong>${minVal.toFixed(0)} ~ ${maxVal.toFixed(0)} psi</strong><br>
-        <strong>⚠️ Slightly High.</strong><br>
-        Pressure slightly exceeds expected. On a hot day, let vehicle cool for 30–45 min and retest.`;
-      document.getElementById("advancedFieldsWrapper").style.display = "block";
-      output.innerHTML = `
-        <div class="report-section" style="border-left: 4px solid orange;">
-          <strong>⚠️ Slightly Elevated Static Pressure:</strong><br>
-          Your reading is a bit high. Let the system stabilize and retest in shade. Proceed with caution if performing dynamic tests.
-        </div>`;
-      return;
-    }
-
-    // Within range
-    staticDisplay.innerHTML = `
-      🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
-      <strong>${minVal.toFixed(0)} ~ ${maxVal.toFixed(0)} psi</strong><br>
-      <strong>✅ Within Range.</strong><br>
-      Proceed to dynamic testing.`;
-    document.getElementById("advancedFieldsWrapper").style.display = "block";
+  if (isNaN(ambient)) {
+    staticDisplay.innerHTML = `🫧 Expected Static Pressure (Engine Off): <em>Enter ambient temp!</em>`;
     output.innerHTML = `
-      <div class="report-section" style="border-left: 4px solid green;">
-        <strong>✅ Static Pressure Within Range:</strong><br>
-        System appears properly charged. Proceed to dynamic (engine-running) testing.
+      <div class="report-section" style="border-left: 4px solid gray;">
+        <strong>🌡️ Ambient Temperature Required</strong><br>
+        Please enter a valid ambient temperature to calculate the expected static pressure range.
       </div>`;
+    return;
   }
 
-  // event listeners
-  document.getElementById("ambient").addEventListener("input", evaluateStaticPressure);
-  document.getElementById("staticPressure").addEventListener("input", evaluateStaticPressure);
-  document.getElementById("refrigerant").addEventListener("change", () => {
-    evaluateStaticPressure();
-    updateSaturationDisplay();
-  });
+  const range = getStaticPressureRange(ambient, refrigerant);
+  // round down min, round up max
+  const minVal = Math.floor(range.min);
+  const maxVal = Math.ceil(range.max);
 
+  if (isNaN(staticPSI)) {
+    staticDisplay.innerHTML = `
+      🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+      <strong>${minVal} ~ ${maxVal} psi</strong><br>
+      <em>Enter Static Pressure (PSI) to diagnose fill state.</em>`;
+    output.innerHTML = `
+      <div class="report-section" style="border-left: 4px solid gray;">
+        <strong>📝 Awaiting Static PSI Input</strong><br>
+        Please enter a static pressure reading to determine system condition.<br>
+        Use the displayed expected range for guidance.
+      </div>`;
+    return;
+  }
+
+  // Significantly Undercharged (very low)
+  if (staticPSI < range.min - 5) {
+    staticDisplay.innerHTML = `
+      🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+      <strong>${minVal} ~ ${maxVal} psi</strong><br>
+      <strong>❌ Undercharged – STOP.</strong><br>
+      Static pressure is well below expected range. Perform a leak test, recover refrigerant, and recharge to factory specs.`;
+    document.getElementById("advancedFieldsWrapper").style.display = "none";
+    output.innerHTML = `
+      <div class="report-section" style="border-left: 4px solid red;">
+        <strong>❌ Undercharged System:</strong><br>
+        Static PSI is much lower than expected for today’s temperature.<br>
+        The system likely has a significant leak or is very low on refrigerant.<br>
+        We recommend a full leak check, recovery, and recharge before any further diagnostics.
+      </div>`;
+    return;
+  }
+
+  // Slightly Undercharged (borderline low)
+  if (staticPSI < range.min) {
+    staticDisplay.innerHTML = `
+      🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+      <strong>${minVal} ~ ${maxVal} psi</strong><br>
+      <strong>⚠️ Slightly Low.</strong><br>
+      Pressure is just below expected range. On older vehicles, minor loss is normal. Recommend service and top-off if A/C isn't cooling at its best.`;
+    document.getElementById("advancedFieldsWrapper").style.display = "block";
+    output.innerHTML = `
+      <div class="report-section" style="border-left: 4px solid orange;">
+        <strong>⚠️ Slightly Low Static Pressure:</strong><br>
+        Your reading is a little low for today's temperature. This often happens as vehicles age, especially if the A/C has never been serviced.<br>
+        If you notice less cooling than usual, a simple top-off or basic service can help restore comfort and efficiency.
+      </div>`;
+    return;
+  }
+
+  // Overcharged or contamination (significantly above +10 psi)
+  if (staticPSI > range.max + 10) {
+    staticDisplay.innerHTML = `
+      🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+      <strong>${minVal} ~ ${maxVal} psi</strong><br>
+      <strong>🔴 Above Range – Possible Non-Condensables</strong><br>
+      Pressure is well above expected. Let system acclimate, then identify refrigerant and retest.`;
+    document.getElementById("advancedFieldsWrapper").style.display = "none";
+    output.innerHTML = `
+      <div class="report-section" style="border-left: 4px solid red;">
+        <strong>🔴 High Static Pressure:</strong><br>
+        The pressure is much higher than expected. This could be due to too much refrigerant, air contamination, or even the wrong refrigerant in the system.<br>
+        Allow the system to fully stabilize, then identify and recover as needed before moving forward.
+      </div>`;
+    return;
+  }
+
+  // Slightly High
+  if (staticPSI > range.max) {
+    staticDisplay.innerHTML = `
+      🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+      <strong>${minVal} ~ ${maxVal} psi</strong><br>
+      <strong>⚠️ Slightly High.</strong><br>
+      Pressure slightly exceeds expected. On a hot day, let vehicle cool for 30–45 min and retest.`;
+    document.getElementById("advancedFieldsWrapper").style.display = "block";
+    output.innerHTML = `
+      <div class="report-section" style="border-left: 4px solid orange;">
+        <strong>⚠️ Slightly Elevated Static Pressure:</strong><br>
+        Your reading is a bit high. Let the vehicle cool in the shade and retest.<br>
+        If the pressure stays high, we recommend a professional inspection and adjustment for best performance.
+      </div>`;
+    return;
+  }
+
+  // Within expected range
+  staticDisplay.innerHTML = `
+    🫧 Expected Static Pressure (Engine Off) for ${refrigerant.toUpperCase()}: 
+    <strong>${minVal} ~ ${maxVal} psi</strong><br>
+    <strong>✅ Within Range.</strong><br>
+    Proceed to dynamic testing.`;
+  document.getElementById("advancedFieldsWrapper").style.display = "block";
+  output.innerHTML = `
+    <div class="report-section" style="border-left: 4px solid green;">
+      <strong>✅ Static Pressure Within Range:</strong><br>
+      The system looks properly charged based on today’s temperature. You can now move forward with engine-running A/C testing.
+    </div>`;
+}
+
+// --- Event listeners ---
+document.getElementById("ambient").addEventListener("input", evaluateStaticPressure);
+document.getElementById("staticPressure").addEventListener("input", evaluateStaticPressure);
+document.getElementById("refrigerant").addEventListener("change", () => {
+  evaluateStaticPressure();
+  updateSaturationDisplay();
+});
+</script>
+
+<script>
     // ─── Pressure Relief Response ─────────────────────────────────────────
     function handleLiquidPortReliefResponse(heard) {
       hideModal("liquidPortReliefCheckModal");
@@ -1899,7 +1886,7 @@ function updateDiagnosticBars(params) {
       } else if (ventDelta > expectedVentRange.max) {
         ventStatus = `❌ Above expected range (Measured ΔT: ${ventDelta.toFixed(0)}°F). Tip: If Superheat is in range and blower is MAX, suspect low airflow (dirty filter or mode fault).`;
       } else {
-        ventStatus = `✅ Within expected range (${expectedVentRange.min}–${expectedVentRange.max}°F).`;
+        ventStatus = `✅ Is within expected range (${expectedVentRange.min}–${expectedVentRange.max}°F).`;
       }
 
       const issues = [];
@@ -1939,43 +1926,63 @@ function updateDiagnosticBars(params) {
         ventTemp: (typeof ventDelta !== "undefined" && typeof ambient !== "undefined") ? (ambient - ventDelta) : null,
         rh
 });
-      return `
-        <div class="report-section">
-          <strong>🔍 Evaluation Summary:</strong><br>
-          <strong>Score:</strong> ${scoreDisplay}<br>
-          <strong>Result:</strong> ${confidenceEmoji} ${resultLabel}
-        </div>
+    
+  return `
+<div class="report-section">
+  <strong>📈 Evaluation Summary:</strong><br>
+  <strong>Score:</strong> ${scoreDisplay}<br>
+  <strong>Result:</strong> ${confidenceEmoji} ${resultLabel}<br><br>
+  <strong>🔍 Evaluation Details:</strong><br>
+  🌬️ <strong>Vent Temperature Drop from Ambient:</strong> ${ventStatus}<br>
+  Shows how much cooler the air from the vents is compared to outside. A good drop means your A/C is removing heat efficiently.<br><br>
+  
+  🧊 <strong>Condenser Refrigerant Cooling Reserve (Subcooling):</strong>
+  ${
+    subcooling < subcoolMin
+      ? `❌ Low (${subcooling.toFixed(0)}°F < ${subcoolMin}°F) – System may be undercharged or not storing enough cooling energy.`
+      : subcooling > subcoolMax
+      ? `🔴 High (${subcooling.toFixed(0)}°F > ${subcoolMax}°F) – System may be overcharged or restricted.`
+      : `✅ System is storing the correct amount of cooling energy. (${subcoolMin}–${subcoolMax}°F)`
+  }<br><br>
+  
+  ❄️ <strong>Evaporator Superheat:</strong> ${superheat.toFixed(0)}°F — ${superheatStatus}${superheatTag ? ` (${superheatTag})` : ""}<br>
+  Indicates how well refrigerant is vaporizing in the evaporator. Proper superheat confirms efficient cooling and metering device operation.<br><br>
+  
+  🔥 <strong>Condenser Heat Rejection (ΔT):</strong>
+  ${
+    condRejectionDelta < condRange.min
+      ? `❌ Low (${condRejectionDelta.toFixed(0)}°F < ${condRange.min}°F) – System may not be releasing enough heat (possible airflow or charge issue).`
+      : condRejectionDelta > condRange.max
+      ? `🔴 High (${condRejectionDelta.toFixed(0)}°F > ${condRange.max}°F) – System may be overcharged or have restricted airflow.`
+      : `✅ System is effectively releasing heat. (${condRange.min}–${condRange.max}°F)`
+  }<br><br>
+  
+  🧪 <strong>Refrigerant Charge Fill:</strong> ${fillStatus}<br>
+  Shows if your system has the correct amount of refrigerant for best performance.<br><br>
+  
+  📊 <strong>A/C System Loop Balance:</strong> ${fullBalanceStatus}<br>
+  Confirms that all key temperatures and pressures are within expected ranges for balanced operation.
+<br>
+<div class="report-section" style="border-left: 4px solid #0074D9; margin-top:12px;">
+  <strong>🔧 Our ASE Certified Tech Observed the following:</strong><br>
+  ${techTip.tip}
+</div>
 
-        <div class="report-section">
-          🌬️ Vent ΔT: ${ventStatus}<br>
-          🧊 Subcooling: ${
-            subcooling < subcoolMin
-              ? `❌ Low (${subcooling.toFixed(0)}°F < ${subcoolMin}°F)`
-              : subcooling > subcoolMax
-              ? `🔴 High (${subcooling.toFixed(0)}°F > ${subcoolMax}°F)`
-              : `✅ Normal (${subcoolMin}–${subcoolMax}°F)`
-          }<br>
-          ❄️ Superheat: ${superheat.toFixed(0)}°F — ${superheatStatus}${superheatTag ? ` (${superheatTag})` : ""}<br>
-          🔥 Condenser Heat Rejecion Diff: ${
-            condRejectionDelta < condRange.min
-              ? `❌ Low (${condRejectionDelta.toFixed(0)}°F < ${condRange.min}°F)`
-              : condRejectionDelta > condRange.max
-              ? `🔴 High (${condRejectionDelta.toFixed(0)}°F > ${condRange.max}°F)`
-              : `✅ Acceptable (${condRange.min}–${condRange.max}°F)`
-          }<br>
-          🧪 Charge Fill: ${fillStatus}<br>
-          📊 System Balance: ${fullBalanceStatus}
-        </div>
-  	<div class="report-section" style="border-left: 4px solid #0074D9; margin-top:12px;">
-    	<strong>🔧 Tech Tip:</strong><br>
-    	${techTip.tip}
-  	</div>
-	`;
+<div class="report-section" style="margin-top:8px; font-size:0.93em; color:#666;">
+  <em>
+    All findings are based on standard A/C system behavior and expected operating ranges. 
+    Results may vary depending on vehicle design and real-world conditions.
+  </em>
+</div>
+`;
+
+window.latestACTechTip = techTip;
 
 
-
-  const analysis = rootCause();   // 1) run your I-T-T-T logic
-  document.getElementById("triageResults").textContent = analysis;  // 2) dump it into the DOM
+  const analysis = rootCause();   
+// 1) run your I-T-T-T logic
+  document.getElementById("triageResults").textContent = analysis;  
+// 2) dump it into the DOM
 }
 
 
@@ -2020,14 +2027,15 @@ function calculateChargeDifference(factoryCharge, fillPercent, unit = 'oz') {
 
 </script>
 
-
 <script>
-// ===============================
-// OSPF/DSOP Customer Summary Function
-// ===============================
+document.getElementById("customerConcern").addEventListener("change", function() {
+  document.getElementById("concernDetail").style.display = this.value === "other" ? "block" : "none";
+});
+
 function buildACCustomerSummary({
   customer = "Customer",
   vehicle = "your vehicle",
+  customerConcern = "N/A",
   staticPsi,
   staticPsiLowThresh,
   staticPsiHighThresh,
@@ -2040,64 +2048,174 @@ function buildACCustomerSummary({
   expectedVentDeltaMax,
   needsFilterReminder,
   chargeStatus,
-  imbalanceDetected
+  imbalanceDetected,
+  serviceInterval = "",
+  vehicleAge = 0
 }) {
-  let message = `Hi ${customer}, here’s an update on your ${vehicle} A/C evaluation: `;
+  const paragraphs = [];
 
-  // 1. Static Pressure edge case
-  if (typeof staticPsi === "number" && typeof staticPsiLowThresh === "number" && typeof staticPsiHighThresh === "number") {
+  const greeting = `Hi ${customer}, thank you for bringing in your ${vehicle} so we could check your A/C system for "${customerConcern}".`;
+  paragraphs.push(greeting);
+
+  const acknowledge = customerConcern && customerConcern !== "N/A"
+    ? `We understand your concern.`
+    : `We appreciate you letting us evaluate your A/C system.`;
+  paragraphs.push(acknowledge);
+
+  let issues = "During today’s inspection, ";
+  let foundAny = false;
+  let issueList = [];
+
+  // Pressure
+  if (
+    typeof staticPsi === "number" &&
+    typeof staticPsiLowThresh === "number" &&
+    typeof staticPsiHighThresh === "number"
+  ) {
     if (staticPsi < staticPsiLowThresh) {
-      message += `The A/C system's static pressure (${staticPsi} psi) is lower than expected (${staticPsiLowThresh}–${staticPsiHighThresh} psi for current conditions). This usually means the system is low on refrigerant or has a leak. `;
+      issueList.push(`the system’s pressure was a bit lower than ideal. This may lead to unexpected warm air and is often a sign the refrigerant level needs to be adjusted and checked for leaks`);
+      foundAny = true;
     } else if (staticPsi > staticPsiHighThresh) {
-      message += `Your static pressure (${staticPsi} psi) is higher than expected for current conditions (${staticPsiLowThresh}–${staticPsiHighThresh} psi). This may mean overcharging or contamination. `;
-    } else {
-      message += `Your static pressure (${staticPsi} psi) is within the expected range for the current ambient temperature (${ambient}°F). `;
+      issueList.push(`the system’s pressure was higher than normal, which can sometimes cause system shutdowns or extra strain`);
+      foundAny = true;
     }
   }
 
-  // 2. Superheat edge case
-  if (typeof superheat === "number" && superheat >= 10 && superheat <= 12) {
-    message += `Your superheat reading is ${superheat.toFixed(1)}°F, which is on the high side of normal. The A/C may be working harder or less efficiently than ideal. `;
-  } else if (typeof superheat === "number" && superheat > 15) {
-    message += `Superheat is high (${superheat.toFixed(1)}°F), possibly indicating undercharge or a restriction. `;
+  // Superheat
+  if (typeof superheat === "number" && superheat > 15) {
+    issueList.push(`your system is working harder than it should be (high superheat), which may point to a restriction or low refrigerant`);
+    foundAny = true;
+  } else if (typeof superheat === "number" && superheat < 5) {
+    issueList.push(`the superheat is lower than expected, which can indicate too much refrigerant flow and may risk compressor damage or icing`);
+    foundAny = true;
   }
 
-  // 3. Vent ΔT edge case
-  if (typeof ventDelta === "number" && typeof expectedVentDeltaMin === "number" && typeof expectedVentDeltaMax === "number") {
+  // Vent delta
+  if (
+    typeof ventDelta === "number" &&
+    typeof expectedVentDeltaMin === "number" &&
+    typeof expectedVentDeltaMax === "number"
+  ) {
     if (ventDelta < expectedVentDeltaMin) {
-      message += `Your vent temperature drop (${ventDelta}°F below ambient) is less than expected (should be ${expectedVentDeltaMin}–${expectedVentDeltaMax}°F). A/C isn't cooling as much as it should—possible causes include low refrigerant, airflow restriction, or blend door issues. `;
+      issueList.push(`the cabin isn't getting as cool as it could. This could be due to refrigerant level, airflow, or a blend-door issue`);
+      foundAny = true;
     } else if (ventDelta > expectedVentDeltaMax) {
-      message += `The A/C is cooling more than expected (ΔT: ${ventDelta}°F). While that feels cold, it can indicate overcharging or risk of evaporator icing. `;
-    } else {
-      message += `Your vent temperature drop (${ventDelta}°F) is within the expected range. `;
-    }
-  } else if (typeof ventTemp === "number" && typeof ambient === "number") {
-    if (ventTemp > (ambient - 20)) {
-      message += `Your vent temperature is ${ventTemp}°F, but ideally it should be about 20–30°F below the ambient (${ambient}°F). `;
+      issueList.push(`your vents are colder than usual, which can sometimes mean the system is at risk of icing up`);
+      foundAny = true;
     }
   }
 
-  // 4. Filter reminder
-  if (needsFilterReminder) {
-    message += "A filter change is recommended. A dirty cabin filter can reduce airflow and cooling performance. ";
+  // Filter
+  let filterReminder = "";
+  if (
+    needsFilterReminder &&
+    (serviceInterval === "Never" || serviceInterval === "Unknown") &&
+    Number(vehicleAge) > 1
+  ) {
+    filterReminder = `As a friendly reminder, replacing your cabin air filter now helps maintain fresher air, stronger cooling, and may help prevent unnecessary future visits.`;
   }
 
-  // 5. Charge status
+  // Charge status
   if (["slightUnder", "severeUnder"].includes(chargeStatus)) {
-    message += "We found the refrigerant charge is low. Even a small loss can affect cooling—recharging will restore performance. ";
+    issueList.push(`the refrigerant level is a little low. While gradual loss is normal, a sudden drop could signal a possible leak that should be addressed`);
+    if (
+      (chargeStatus === "slightUnder" && Number(vehicleAge) > 1 && (serviceInterval === "Never" || serviceInterval === "")) ||
+      (chargeStatus === "slightUnder" && (serviceInterval === "Never" || serviceInterval === "") && Number(vehicleAge) > 4)
+    ) {
+      issueList.push(`it’s a great time to replace the receiver/drier as preventative maintenance, helping protect your whole A/C system for years to come`);
+    }
+    foundAny = true;
   } else if (chargeStatus === "overcharged") {
-    message += "The system appears overcharged. Recover and refill with the correct amount of refrigerant for best efficiency. ";
+    issueList.push(`the refrigerant level is higher than it should be, which is not typical and can affect performance or cause damage`);
+    foundAny = true;
   }
 
-  // 6. Imbalance detected
+  // Imbalance
   if (imbalanceDetected) {
-    message += "We also detected an imbalance in system pressures or flow, which may point to a mechanical or control issue. Our technician will review further. ";
+    issueList.push(`we noticed some results outside the ideal range and recommend a focused follow-up to resolve this`);
+    foundAny = true;
   }
 
-  // 7. Close
-  message += "Our technician will continue to monitor your A/C system and run additional tests if needed. We'll keep you updated. Please reach out with questions—your comfort is our top priority!";
-  return message;
+  // Compose issue(s) summary
+  if (issueList.length > 0) {
+    issues += issueList.join("; ") + ".";
+  } else {
+    issues += `we checked all major components and readings, and found your A/C system is performing as expected today.`;
+  }
+  paragraphs.push(issues);
+
+  if (filterReminder) paragraphs.push(filterReminder);
+
+  const estimate = foundAny
+    ? `We’re preparing an estimate to help you get these concerns taken care of quickly and get you back on the road with confidence.`
+    : `There’s no estimate needed at this time, but we’ll keep an eye out for any changes if you return.`;
+  paragraphs.push(estimate);
+
+  const benefits = foundAny
+    ? `By addressing these items now, you’ll enjoy steady cold air, avoid unexpected breakdowns, and protect your investment from more costly repairs later. Let us know if you have any questions or want to move forward—we’re here to keep you comfortable and confident.`
+    : `If your original concern returns or you notice any changes—even if intermittent—please let us know so we can keep you comfortable and avoid surprises. Enjoy your drives knowing your A/C is working for you!`;
+  paragraphs.push(benefits);
+
+  return paragraphs;
 }
+
+// Chat Widget Helper
+function cw_appendMessage(text, cls) {
+  const cw_messagesDiv = document.getElementById("cw_messages");
+  const d = document.createElement("div");
+  d.className = "cw_message " + cls;
+  d.innerHTML = text;
+  cw_messagesDiv.appendChild(d);
+  cw_messagesDiv.scrollTop = cw_messagesDiv.scrollHeight;
+}
+
+// Build and post customer summary with real concern string
+function postCustomerSummaryToChat() {
+  let customerConcernText = "";
+  const ccEl = document.getElementById("customerConcern");
+  if (ccEl && ccEl.selectedIndex >= 0) {
+    customerConcernText = ccEl.options[ccEl.selectedIndex].text.trim();
+  }
+  if (ccEl && ccEl.value === "other") {
+    const detail = document.getElementById("concernDetail")?.value.trim();
+    if (detail) customerConcernText += `: ${detail}`;
+  }
+
+  const summaryParagraphs = buildACCustomerSummary({
+    customer: document.getElementById("customer").value.trim() || "Customer",
+    vehicle: document.getElementById("vehicle").value.trim()  || "your vehicle",
+    customerConcern: customerConcernText || "N/A",
+    staticPsi: window.latestPromptFlags.staticPsi,
+    staticPsiLowThresh: window.latestPromptFlags.staticPsiLowThresh,
+    staticPsiHighThresh: window.latestPromptFlags.staticPsiHighThresh,
+    ambient: window.latestPromptFlags.ambient,
+    superheat: window.latestPromptFlags.superheat,
+    subcooling: window.latestPromptFlags.subcooling,
+    ventTemp: window.latestPromptFlags.ventTemp,
+    ventDelta: window.latestPromptFlags.ventDelta,
+    expectedVentDeltaMin: window.latestPromptFlags.expectedVentDeltaMin,
+    expectedVentDeltaMax: window.latestPromptFlags.expectedVentDeltaMax,
+    needsFilterReminder: window.latestPromptFlags.needsFilterReminder,
+    chargeStatus: window.latestPromptFlags.chargeStatus,
+    imbalanceDetected: window.latestPromptFlags.imbalanceDetected,
+    serviceInterval: document.getElementById("serviceInterval")?.value || "",
+    vehicleAge: window.latestPromptFlags.vehicleAge
+  });
+
+  document.getElementById("cw_messages").innerHTML = "";
+  cw_appendMessage(
+    summaryParagraphs.map(p => `<p>${p}</p>`).join(""),
+    "cw_assistant"
+  );
+}
+
+function runEvaluation() {
+  // ... your full evaluation logic here ...
+  postCustomerSummaryToChat();
+}
+
+document.getElementById("evaluateBtn").addEventListener("click", runEvaluation);
+
 </script>
 
 
@@ -2247,7 +2365,7 @@ const compressionRatio = evapPressure > 0 ? highPressure / evapPressure : null;
 let superheatStatus = "";
   if (superheat > 15) { superheatStatus = "❌ Superheat High (>15°F) – Restriction suspected.";
   } else if (superheat < 10) { superheatStatus = "❌ Superheat Low (<10°F) – TXV overfeeding suspected.";
-  } else if (superheat >= 10 && superheat <= 15 && percentFillRaw >= 0.95 && percentFillRaw <= 1.05) { superheatStatus = "✅ TXV working in range.";
+  } else if (superheat >= 10 && superheat <= 15 && percentFillRaw >= 0.95 && percentFillRaw <= 1.05) { superheatStatus = "✅ Refrigerant expansion is working in range.";
   } else if (superheat >= 10 && superheat <= 15 && !isProperlyCharged) { if (isVDC) { superheatStatus = " Double check Evaporator Temp Sensor (ETS) performance for accuracy.";
   } else { superheatStatus = " Evaporator temp looks normal, but something else isn’t right. Check charge, airflow, and other performance issues.";
   }
@@ -2283,44 +2401,21 @@ if (typeof vehicleVal === "string") {
   vehicleYear = yearMatch ? parseInt(yearMatch[0], 10) : 0;
 }
 
-// 5. Build the promptFlags object
-const promptFlags = {
-  chargeStatus,
-  hasVDC: !!isVDC, // Boolean for compressor type
-  ventOk,
-  imbalanceDetected,
-  needsFilterReminder: ventOk,
-  vehicleYear,
-  vehicle: document.getElementById("vehicle").value || "",
-  fillPercent: Math.round(percentFillRaw * 100),
-  subcooling: Number(subcooling),
-  superheat: Number(superheat),
-  ventTemp: Number(ventTemp),
-  ambient: Number(ambientNum),
-  rh: Number(rh),
-  serviceInterval: document.getElementById("serviceInterval").value || "Unknown",
-  customer: document.getElementById("customer").value || ""
-};
+// 5. Gather form and summary builder inputs (with robust defaults)
+const customerEl = document.getElementById("customer");
+const vehicleEl = document.getElementById("vehicle");
+const ccEl = document.getElementById("customerConcern");
+const concernDetailEl = document.getElementById("concernDetail");
+const customerConcernText =
+  ccEl && ccEl.selectedIndex >= 0
+    ? ccEl.options[ccEl.selectedIndex].text
+    : "";
 
-// 6. Create the flags string for serialization
-const flagsString = Object.entries(promptFlags)
-  .map(([k, v]) => `${k}: ${v}`)
-  .join("; ");
-
-// 7. (Optional) Expose for other modules or chat widget use
-window.latestPromptFlags = promptFlags;
-window.latestFlagsString = flagsString;
-
-
-	// 5. Store for chat widget & external use
-window.latestPromptFlags = promptFlags;
-
-
-
-// At the end of runEvaluation (before modals/advisory blocks)
+// 6. Build the summary (NO greeting here—let backend add that)
 const summary = buildACCustomerSummary({
-  customer: document.getElementById("customer").value || "Customer",
-  vehicle: document.getElementById("vehicle").value || "your vehicle",
+  // Do NOT include a "Hi ..." or greeting in your summary builder!
+  customerConcern: customerConcernText,
+  concernDetail: concernDetailEl?.value || "",
   staticPsi: staticPSI,
   staticPsiLowThresh: Math.floor(staticRange.min),
   staticPsiHighThresh: Math.ceil(staticRange.max),
@@ -2331,27 +2426,65 @@ const summary = buildACCustomerSummary({
   ventDelta: ventDelta,
   expectedVentDeltaMin: expectedVentRange.min,
   expectedVentDeltaMax: expectedVentRange.max,
-  needsFilterReminder: Boolean(promptFlags.needsFilterReminder),
-  chargeStatus: promptFlags.chargeStatus,
-  imbalanceDetected: promptFlags.imbalanceDetected
+  needsFilterReminder: !ventOk,
+  chargeStatus: chargeStatus,
+  imbalanceDetected: imbalanceDetected,
+  // ...add any other fields needed by your summary builder!
 });
+
+
+// 7. Display the summary in the UI (optional)
 document.getElementById("customerSummary").textContent = summary;
-//document.getElementById("customerSummary").style.display = "block";
+
+// 8. Build promptFlags object for backend/chat
+const promptFlags = {
+  vehicle: vehicleEl?.value || "",
+  customer: customerEl?.value || "",
+  customerConcern: customerConcernText,
+  concernDetail: concernDetailEl?.value || "",
+  customerSummary: summary,
+  staticPsi: staticPSI,
+  staticPsiLowThresh: Math.floor(staticRange.min),
+  staticPsiHighThresh: Math.ceil(staticRange.max),
+  ambient: ambientNum,
+  superheat: superheat,
+  subcooling: subcooling,
+  ventTemp: ventTemp,
+  ventDelta: ventDelta,
+  expectedVentDeltaMin: expectedVentRange.min,
+  expectedVentDeltaMax: expectedVentRange.max,
+  needsFilterReminder: !ventOk,
+  chargeStatus: chargeStatus,
+  imbalanceDetected: imbalanceDetected,
+  vehicleYear: vehicleYear,
+  // Add any other diagnostic/context fields needed by backend/chat/export
+};
+
+// 9. Serialize for string export or debugging (optional)
+const flagsString = Object.entries(promptFlags)
+  .map(([k, v]) => `${k}: ${v}`)
+  .join("; ");
+
+// 10. Expose to global for chat widget or other modules
+window.latestPromptFlags = promptFlags;
+window.latestFlagsString = flagsString;
 
 
 
 
   // ─── Confidence breakdown score ───────────────────────────────────────
-  const scorePct = Math.round([
-    superheat >= 10 && superheat <= 15 ? 30 : 0,
-    ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max ? 20 : 0,
-    condRejectionDelta >= getExpectedCondDelta(ambientNum, rh, tempSourceMode, refrigerantVal).min &&
-    condRejectionDelta <= getExpectedCondDelta(ambientNum, rh, tempSourceMode, refrigerantVal).max ? 20 : 0,
-    compressionRatio >= 2.5 && compressionRatio <= highRatioThreshold ? 15 : 0,
-    percentFillRaw >= 0.95 && percentFillRaw <= 1.05 ? 10 : 0,
-    isProperlyCharged ? 5 : 0,
-    tpDeltaResult.scoreImpact > 0 ? 5 : 0
-  ].reduce((a, b) => a + b, 0));
+let minCompression = compressorType && compressorType.toLowerCase().includes("vdc") ? 1.5 : 2.5;
+
+const scorePct = Math.round([
+  superheat >= 10 && superheat <= 15 ? 30 : 0,
+  ventDelta >= expectedVentRange.min && ventDelta <= expectedVentRange.max ? 20 : 0,
+  condRejectionDelta >= getExpectedCondDelta(ambientNum, rh, tempSourceMode, refrigerantVal).min &&
+  condRejectionDelta <= getExpectedCondDelta(ambientNum, rh, tempSourceMode, refrigerantVal).max ? 20 : 0,
+  compressionRatio >= minCompression && compressionRatio <= highRatioThreshold ? 15 : 0,
+  fillPercent >= 95 && fillPercent <= 105 ? 10 : 0,
+  isProperlyCharged ? 5 : 0,
+  tpDeltaResult.scoreImpact > 0 ? 5 : 0
+].reduce((a, b) => a + b, 0));
 
   let label = "";
   if (scorePct === 100) label = "Excellent Confidence";
@@ -2449,6 +2582,25 @@ document.getElementById("customerSummary").textContent = summary;
   const ro = document.getElementById("ro").value || "N/A";
   const timeNow = new Date().toLocaleString();
 
+// CUSTOMER’S CONCERN
+const concernValue = document.getElementById("customerConcern").value;
+const concernText = (() => {
+  switch(concernValue) {
+    case "not_cold": return "Not cold enough at vents";
+    case "no_operation": return "A/C does not operate at all";
+    case "intermittent": return "Intermittent cooling";
+    case "strange_noise": return "Strange noise when A/C is on";
+    case "odor": return "Musty or foul odor from vents";
+    case "blows_hot": return "Blows hot air only";
+    case "weak_airflow": return "Weak airflow from vents";
+    case "fogging": return "Windows fogging up with A/C on";
+    case "water_leak": return "Water leaking inside vehicle";
+    case "other": return "Other: " + (document.getElementById("concernDetail").value || "");
+    default: return "N/A";
+  }
+})();
+
+
   document.getElementById("timestamp").innerText = `Testing Timestamp: ${timeNow}`;
   document.getElementById("output").innerHTML = `
     <div style="text-align:center; margin-bottom: 20px;">${brandingContent}</div>
@@ -2456,15 +2608,17 @@ document.getElementById("customerSummary").textContent = summary;
       <strong>RO#:</strong> ${ro}<br>
       <strong>Customer:</strong> ${customer}<br>
       <strong>Vehicle:</strong> ${vehicle}<br>
-      <strong>ZIP:</strong> ${zipVal || "N/A"}<br>
-      <strong>Time:</strong> ${timeNow}<br>
-      <strong>Evaluation Test Stage:</strong> ${testStage}<br>
-      ${window.fetchedWeather ? `Weather: ${window.fetchedWeather.ambient}°F, RH: ${window.fetchedWeather.rh}%<br>` : ""}
+      <strong>Customer Concern:</strong> ${concernText}<br><BR>
+      ${window.fetchedWeather ? `Weather:
+{window.fetchedWeather.ambient}°F, RH: ${window.fetchedWeather.rh}%<br>` : ""}
     </div>
 
     <div class="report-section">
-      <strong>🫧 Static Pressure Analysis:</strong><br>
-      Ambient: ${ambientNum}°F<br>
+<strong>Evaluation Test Stage:</strong> ${testStage}<br>
+<strong>Time of Testing:</strong> ${timeNow}<br><bR>           
+<strong>🫧 Static Pressure Analysis:</strong><br>
+     
+      ⛅️ Ambient: ${ambientNum}°F<br>
       Measured Static PSI: ${staticPSI} psi<br>
       Expected Range: ${staticRange.min.toFixed(0)}–${staticRange.max.toFixed(0)} psi (${refrigerantVal.toUpperCase()})<br>
       Status: ${
@@ -2501,17 +2655,25 @@ document.getElementById("customerSummary").textContent = summary;
       document.getElementById("expansionDevice").value
     )}
 
+const techTip = window.latestACTechTip;
+
 <div class="metric-grid">
 
   <!-- 🌬️ Vent ΔT -->
   <div class="tooltip">
     <div id="ventDeltaBar" class="metric-bar"></div>
     <div class="tooltip-content">
-      <strong>Vent ΔT (Air Cooling Drop)</strong>
+      <strong>🌬️ Vent ΔT (Air Cooling Drop)</strong>
       <ul style="margin:4px 0 4px 16px;">
-        <li><strong>Too Small:</strong> Vent isn’t cold enough – likely poor airflow (dirty filter or wrong vent door).</li>
+        <li><strong>Too Small:</strong> Vent isn’t cold enough – Likely low refrigerant, poor airflow (dirty filter or wrong vent door).</li>
         <li><strong>Just Right:</strong> Airflow and heat removal are on point.</li>
         <li><strong>Too Big:</strong> Could be overcharged or recirculation-door stuck.</li>
+      </ul>
+      <strong>Testing Points</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>Ambient Air:</strong> Measure with a digital thermometer at a fresh-air intake or just outside the vehicle.</li>
+        <li><strong>Vent Air:</strong> Insert thermometer into the center dash vent, close to the evaporator output.</li>
+        <li>ΔT = (Ambient Air Temp) - (Vent Air Temp)</li>
       </ul>
       <strong>Quick Tips & Pitfalls</strong>
       <ul style="margin:4px 0 4px 16px;">
@@ -2526,16 +2688,32 @@ document.getElementById("customerSummary").textContent = summary;
   <div class="tooltip">
     <div id="condenserDeltaBar" class="metric-bar"></div>
     <div class="tooltip-content">
-      <strong>Condenser ΔT (Condenser Cooling Drop)</strong>
+      <strong>🔥 Condenser ΔT (Condenser Cooling Drop)</strong>
       <ul style="margin:4px 0 4px 16px;">
-        <li><strong>Too Small:</strong> Low refrigerant or blocked condenser airflow.</li>
-        <li><strong>Just Right:</strong> Condenser dumping heat correctly.</li>
-        <li><strong>Too Big:</strong> Overcharged or fans blowing too hard.</li>
+        <li>
+          <strong>Too Small:</strong> Weak cooling.<br>
+          <span style="font-size:90%;">Suspect low refrigerant, poor condenser airflow (fan not working, debris), or internal restriction.</span>
+        </li>
+        <li>
+          <strong>Just Right:</strong> Healthy ΔT (15–35°F, 8–19°C).<br>
+          <span style="font-size:90%;">Condenser is removing heat as designed.</span>
+        </li>
+        <li>
+          <strong>Too Big:</strong> Excessive ΔT.<br>
+          <span style="font-size:90%;">May be overcharged, airflow too high (fans stuck on), or condenser partially blocked.</span>
+        </li>
+      </ul>
+      <strong>Testing Points</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>Inlet:</strong> Line from compressor to condenser (hot, high-pressure side).</li>
+        <li><strong>Outlet:</strong> Line from condenser to receiver/drier or expansion device (cooled, high-pressure side).</li>
+        <li>Use a digital thermometer or contact probe at both points, right on the metal lines.</li>
       </ul>
       <strong>Quick Tips & Pitfalls</strong>
       <ul style="margin:4px 0 4px 16px;">
-        <li>If ambient is low, measure right after fan kicks on.</li>
-        <li>Keep hoses and gauges away from engine heat soak.</li>
+        <li>Measure right after the cooling fan starts for a true reading.</li>
+        <li>Keep hoses/gauges away from engine heat soak.</li>
+        <li>Always compare to ambient temperature and vent readings for the full picture.</li>
       </ul>
     </div>
   </div>
@@ -2544,16 +2722,26 @@ document.getElementById("customerSummary").textContent = summary;
   <div class="tooltip">
     <div id="compressionBar" class="metric-bar"></div>
     <div class="tooltip-content">
-      <strong>Compression Ratio</strong>
+      <strong>📈 Compression Ratio (A/C System)</strong>
       <ul style="margin:4px 0 4px 16px;">
-        <li><strong>Below 2.5:</strong> Undercharge or slipping compressor.</li>
-        <li><strong>2.5–4.5:</strong> Healthy compression.</li>
-        <li><strong>Above 4.5:</strong> Possible overcharge or restriction.</li>
+        <li><strong>Below 2.5:</strong> Undercharge, slipping compressor clutch, or weak VDC control signal.</li>
+        <li><strong>2.5–4.5:</strong> Healthy system—compressor building normal pressure.</li>
+        <li><strong>Above 4.5:</strong> Overcharge or refrigerant flow restriction (TXV/orifice, receiver, or internal blockage).</li>
+      </ul>
+      <strong>Testing Points</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>High Side:</strong> Connect gauge to service port on condenser outlet or compressor discharge.</li>
+        <li><strong>Low Side:</strong> Connect gauge to service port on evaporator inlet or compressor suction.</li>
+        <li><strong>Compression Ratio =</strong> (High Side Pressure) ÷ (Low Side Pressure), both in psi or kPa.</li>
       </ul>
       <strong>Quick Tips & Pitfalls</strong>
       <ul style="margin:4px 0 4px 16px;">
-        <li>Read pressures with engine running, A/C on MAX.</li>
-        <li>Ignore static (cold-start) pressures—they’re misleading.</li>
+        <li>Measure with engine running, A/C set to MAX, recirculation ON, doors closed.</li>
+        <li>Ignore static (engine-off) pressures—they’re misleading for diagnostics.</li>
+        <li>
+          <strong>VDC Systems:</strong> Variable Displacement Compressors may adjust displacement based on cabin temp or load.<br>
+          <span style="font-size:90%;">If ratio seems low, confirm system is actually demanding full cooling—set temp to coldest and let system stabilize for 2–3 minutes. Low ratios may be normal at idle or light load.</span>
+        </li>
       </ul>
     </div>
   </div>
@@ -2562,17 +2750,32 @@ document.getElementById("customerSummary").textContent = summary;
   <div class="tooltip">
     <div id="fillBar" class="metric-bar"></div>
     <div class="tooltip-content">
-      <strong>Estimated Fill %</strong>
+      <strong>🧪 Estimated Fill % (Dynamic)</strong>
       <ul style="margin:4px 0 4px 16px;">
-        <li><strong>&lt;95%:</strong> Undercharged — add refrigerant.</li>
-        <li><strong>95–105%:</strong> Correct factory charge.</li>
-        <li><strong>&gt;105%:</strong> Overcharged — recover refrigerant.</li>
+        <li><strong>&lt;95%:</strong> Undercharged — system can't maintain proper high-side pressure or cooling, performance drops.</li>
+        <li><strong>95–105%:</strong> Factory charge zone — high-side pressure, liquid line temp, and vent ΔT all match target specs.</li>
+        <li><strong>&gt;105%:</strong> Overcharged — high-side pressure excessive, condenser ΔT may spike, risk of compressor damage.</li>
+      </ul>
+      <strong>Testing Points</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li>
+          <strong>High-Side Service Port:</strong> Monitor liquid line pressure with digital gauge at condenser outlet or receiver/drier.
+        </li>
+        <li>
+          <strong>Liquid Line Temperature:</strong> Use a digital clamp probe on the high-side line after the condenser.
+        </li>
+        <li>
+          <strong>Vent Temperature:</strong> Compare performance at the center dash vent under MAX cooling.
+        </li>
       </ul>
       <strong>Quick Tips & Pitfalls</strong>
       <ul style="margin:4px 0 4px 16px;">
-        <li>Verify factory-charge spec for that vehicle.</li>
-        <li>Convert units (oz⇄lb⇄g) before calculating.</li>
-        <li>Let pressures stabilize (~2 min) under full load.</li>
+        <li>Run system on MAX A/C, recirc mode, and doors closed for stable readings.</li>
+        <li>Let the system stabilize 2–3 minutes before evaluating fill % dynamically.</li>
+        <li>
+          <strong>Note:</strong> Estimated Fill % is based on how closely pressure, temp, and vent performance match known good (factory-charged) data—not just total weight.
+        </li>
+        <li>If readings seem off, verify with refrigerant scale for absolute accuracy.</li>
       </ul>
     </div>
   </div>
@@ -2581,43 +2784,67 @@ document.getElementById("customerSummary").textContent = summary;
   <div class="tooltip">
     <div id="superheatBar" class="metric-bar"></div>
     <div class="tooltip-content">
-      <strong>Superheat</strong>
+      <strong>❄️ Superheat</strong>
       <ul style="margin:4px 0 4px 16px;">
         <li><strong>&lt;10 °F:</strong> Too little—TXV overfeeding or too-large orifice.</li>
         <li><strong>10–15 °F:</strong> Balanced evaporator load.</li>
         <li><strong>&gt;15 °F:</strong> Undercharge or restriction suspected.</li>
       </ul>
+      <strong>Testing Points</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>Suction Line Temperature:</strong> Clamp a probe on the suction (low side) line, about 6 inches from the evaporator outlet—this is just before the line returns to the compressor.</li>
+        <li><strong>Low-Side Pressure:</strong> Use a gauge on the suction service port (close to evaporator outlet).</li>
+        <li><strong>Superheat Calculation:</strong> (Measured suction line temp) – (Saturation temp based on low-side pressure).</li>
+      </ul>
+      <strong>Where to Find Superheat in the System</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li>Superheat is measured on the <b>suction line</b> immediately after refrigerant leaves the evaporator, <b>before it gets to the compressor</b>.</li>
+        <li>This tells you how much the refrigerant has warmed up after fully evaporating—shows if you’re getting all the cooling possible from your evaporator.</li>
+      </ul>
       <strong>Quick Tips & Pitfalls</strong>
       <ul style="margin:4px 0 4px 16px;">
-        <li>Measure at the same spot on suction line each time.</li>
-        <li>Use black-tape or a probe—don’t trust shiny-metal IR readings.</li>
-        <li>Humidity can skew readings—keep it in mind.</li>
+        <li>Use the same spot each time for repeatable results.</li>
+        <li>Wrap probe with black tape for accuracy—avoid shiny metal errors.</li>
+        <li>High humidity or poor airflow can skew results.</li>
+        <li>Check blower speed and cabin filter before trusting readings.</li>
       </ul>
     </div>
   </div>
 
-  <!-- 🧊 Subcooling (you already have this) -->
+  <!-- 🧊 Subcooling -->
   <div class="tooltip">
     <div id="subcoolingBar" class="metric-bar"></div>
     <div class="tooltip-content">
-      <strong>Subcooling</strong>
+      <strong>🧊 Subcooling</strong>
       <ul style="margin:4px 0 4px 16px;">
         <li><strong>&lt;5 °F:</strong> Undercharged or poor condenser airflow.</li>
         <li><strong>8–20 °F:</strong> Correct charge & good heat rejection.</li>
         <li><strong>&gt;20 °F:</strong> Overcharge or bypass condition.</li>
       </ul>
+      <strong>Testing Points</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li><strong>Liquid Line Temperature:</strong> Place a clamp probe on the small (high-pressure) line, about 6 inches after the condenser outlet, before the receiver/drier or expansion device.</li>
+        <li><strong>High-Side Pressure:</strong> Connect your gauge at the high-side service port, ideally near the condenser outlet.</li>
+        <li><strong>Subcooling Calculation:</strong> (Saturation temp from high-side pressure) – (Measured liquid line temp).</li>
+      </ul>
+      <strong>Where to Find Subcooling in the System</strong>
+      <ul style="margin:4px 0 4px 16px;">
+        <li>Subcooling is measured on the <b>liquid line immediately after the condenser</b>, before refrigerant enters the receiver/drier or TXV/orifice tube.</li>
+        <li>Shows how much the liquid refrigerant has cooled below its boiling point for best performance.</li>
+      </ul>
       <strong>Quick Tips & Pitfalls</strong>
       <ul style="margin:4px 0 4px 16px;">
-        <li>Let the system stabilize under load before reading.</li>
-        <li>If fans cycle off, read immediately when they restart.</li>
-        <li>TXV systems: 10–15 °F; orifice systems: 12–20 °F target.</li>
+        <li>Let system stabilize under load before reading—fans should be running steadily.</li>
+        <li>If fans cycle off, measure right after they restart for a true value.</li>
+        <li><strong>Target by system:</strong> TXV: 10–15 °F; orifice: 12–20 °F is normal.</li>
+        <li>Wrap probe with black tape for accuracy—avoid shiny metal errors.</li>
       </ul>
     </div>
   </div>
 
 </div>
 
-  </div>
+
     ${techNotes ? `<div class="report-section"><strong>Technician Notes:</strong><br>${techNotes.replace(/\n/g, "<br>")}</div>` : ""}
     ${attachedImages.map(src => `<img src="${src}" style="max-width:150px; margin-top:10px;" />`).join("")}
   `;
@@ -2636,16 +2863,12 @@ document.getElementById("customerSummary").textContent = summary;
 	chargeUnit,  
 	chargeTolerance: 2
 });
-cw_askReport();
-
 document.querySelectorAll('.tooltip').forEach(wrapper => {
   wrapper.addEventListener('click', () => {
     wrapper.classList.toggle('show');
   });
 });
-
-
-  // ─── Store latest report for chat widget ────────────────────
+  // ─── Store latest report──────
   window.latestReportText = stripHTML(document.getElementById("output").innerHTML);
   window.latestPromptFlags = promptFlags;
  
@@ -2680,6 +2903,7 @@ document.querySelectorAll('.tooltip').forEach(wrapper => {
       }
     }
   }
+postCustomerSummaryToChat()
 }
 
 document.getElementById("evaluateBtn").addEventListener("click", runEvaluation);
@@ -2713,7 +2937,7 @@ function getACTechTip({ superheat, subcooling, fillPercent, ambient, ventTemp, r
   const expectedVentMin = amb - expectedVentRange.max; // coldest expected vent temp
   const expectedVentMax = amb - expectedVentRange.min; // warmest expected vent temp
 
-  // Superheat & Subcooling Range
+  // Superheat & Subcooling Range (used for logic only, NOT for customer display)
   const SH_RANGE = { low: [0, 9], normal: [10, 15], high: [16, Infinity] };
   const SC_RANGE = { low: [0, 9], normal: [10, 20], high: [21, Infinity] };
 
@@ -2725,7 +2949,9 @@ function getACTechTip({ superheat, subcooling, fillPercent, ambient, ventTemp, r
     inRange(sc, SC_RANGE.low) ? "low" :
     inRange(sc, SC_RANGE.normal) ? "normal" : "high";
 
-  // High evaporator load, risk of icing (real world nuance)
+  // --- Customer-Friendly Messaging ---
+
+  // Risk of icing (high cooling, high humidity)
   if (
     ventDeltaStatus === "Normal" &&
     fc >= 95 && fc <= 105 &&
@@ -2733,190 +2959,150 @@ function getACTechTip({ superheat, subcooling, fillPercent, ambient, ventTemp, r
     ventDelta > 30
   ) {
     return {
-      tip: `High evaporator load detected: Large temperature drop from outside to vent air (${ventDelta}°F; expected: ${expectedVentRange.min}–${expectedVentRange.max}°F). Risk of evaporator icing—ensure recirc mode is working and inspect cabin filter and TXV operation.`,
+      tip: `We're seeing a high evaporator load—meaning there’s a large difference between outside and vent temps with high humidity—the system is at risk of icing up, especially if recirculation mode is used for long periods.
+→ I'll Check that the cabin air filter and blower are clean, verify strong evaporator airflow, ensure the expansion valve (TXV) is working properly, and avoid extended recirculation—switch to fresh air periodically to prevent ice buildup.`,
       overrideITTT: false
     };
   }
 
-  // Typical diagnostic patterns (all are ITTT)
+  // Refrigerant low
   if (shRange === "high" && scRange === "low") {
     return {
-      tip: "High superheat (>15°F) & low subcooling (<10°F): This pattern almost always indicates an undercharged system. Confirm refrigerant type and level, and check for leaks.",
-      overrideITTT: false
-    };
+  tip: `The system is reporting the evaporator is not receiving enough refrigerant (high superheat) while condenser performance is also low (low subcooling), which almost always means the A/C system is low on refrigerant or has a blockage.
+→ Next steps: I'll Confirm refrigerant level and add as needed, check for leaks, and inspect for restrictions in the system.
+
+But before i do, I will perform a quick field test → Experience dictates, with the A/C running, I’ll feel the liquid line and receiver/drier near the expansion valve.
+- If these parts are unusually cold or frosted but the line after the expansion valve is much warmer, this points to refrigerant stacking from a restriction.
+- If the liquid line and receiver/drier are at normal temperature, a restriction is unlikely—so I’ll focus on correcting the refrigerant charge and addressing any leaks.`,
+  overrideITTT: false
+};
+
   }
+  // Refrigerant overcharged
   if (shRange === "low" && scRange === "high") {
-    return {
-      tip: "Low superheat (<10°F) & high subcooling (>20°F): System is likely overcharged. Check for excess refrigerant, poor airflow, or a restricted evaporator.",
-      overrideITTT: false
-    };
+return {
+  tip: `The system is reporting the evaporator is being overfed with refrigerant while condenser performance is unusually high. This may indicate the system is overcharged, has a blockage, poor airflow, or possibly contaminated refrigerant—especially if the A/C was recently serviced with a DIY kit or by a non-certified technician.
+→ Next step is to verify the refrigerant charge is not above spec, check for blockages or restrictions in the liquid line or receiver/drier, inspect for poor airflow across the condenser and evaporator, and confirm the correct refrigerant is in use.
+
+I'll do a quick field test → Experience dictates, with the A/C running, I’ll feel the liquid line and receiver/drier.
+- If these parts are unusually cold or frosted but the line after suddenly gets warmer, this suggests refrigerant stacking from a restriction.
+- If the liquid line and receiver/drier are at normal temperature, I’ll focus on verifying the correct charge, checking for airflow issues, and confirming refrigerant purity.
+
+Customer Advisory: If their A/C was recently serviced with a DIY kit or by a non-certified technician, there may be a risk of incorrect refrigerant or contamination in the system, which can reduce cooling or cause further damage. Additional disposal fees may apply. A professional evacuation and recharge with the correct refrigerant is recommended for reliable performance.`,
+  overrideITTT: false
+};
   }
+  // Poor refrigerant flow (metering device issue)
   if (shRange === "low" && scRange === "low") {
     return {
-      tip: "Low superheat (<10°F) & low subcooling (<10°F): TXV stuck open or orifice tube is oversized. May require flushing or metering device inspection.",
-      overrideITTT: false
-    };
+  tip: `The system is reporting the evaporator is being overfed with refrigerant while condenser performance is also low. This indicates the metering device (TXV or orifice tube) may be overfeeding.
+→ Next step is to inspect the expansion valve (TXV) or orifice tube for sticking or incorrect calibration, and replace if necessary.
+
+I'll do a quick field test → Experience dictates, with the A/C running, I’ll feel the suction line at the compressor.
+- If the suction line is excessively cold or sweating at the compressor, this suggests too much liquid refrigerant may be reaching the compressor (flood-back).
+- If the suction line is cool but not overly cold at the compressor, overfeeding is less likely. I’ll then recheck the operation and calibration of the metering device.`,
+  overrideITTT: false
+};
   }
+  // Blockage or flow issue (both high)
   if (shRange === "high" && scRange === "high") {
     return {
-      tip: "High superheat (>15°F) & high subcooling (>20°F): Likely restriction with liquid overload. Inspect filter-dryer and metering device for blockage.",
-      overrideITTT: false
-    };
+  tip: `The system is reporting poor evaporator performance (not enough refrigerant reaching the evaporator) along with unusually high condenser performance. This suggests there may be a restriction in the system and possible condenser overload.
+→ Next step is to check the filter-drier and metering device (TXV or orifice tube) for blockages or malfunction, and replace any restricted components as needed.
+
+I'll do a quick field test → Experience dictates, with the A/C running, I’ll feel the liquid line and receiver/drier.
+- If these parts are unusually cold or frosted but the line after suddenly gets warmer, this indicates refrigerant stacking due to a restriction.
+- If the liquid line and receiver/drier are at normal temperature, a restriction is unlikely—so I’ll focus on verifying the refrigerant charge and confirming proper airflow across the condenser.`,
+  overrideITTT: false
+};
+
   }
+  // Mild restriction or mild overcharge
   if (shRange === "normal" && scRange === "high") {
     return {
-      tip: "Normal superheat (10–15°F) & high subcooling (>20°F): Possible restriction or mild overcharge. Check metering device, condenser outlet, and verify charge accuracy.",
-      overrideITTT: false
-    };
+  tip: `The system is reporting normal evaporator function with high condenser performance. This may indicate a restriction in the liquid line.
+→ Next step is t0 inspect the liquid line and receiver/drier for any blockages or restrictions, and replace restricted components as needed to restore proper refrigerant flow.
+
+I'll do a quick field test → Experience dictates, with the A/C running, I’ll feel the liquid line and receiver/drier.
+- If these parts are unusually cold or frosted but the line after suddenly gets warmer, this suggests refrigerant stacking caused by a restriction.
+- If the liquid line and receiver/drier are at normal temperature, restriction is unlikely—so I’ll confirm refrigerant charge and check for other system issues.`,
+  overrideITTT: false
+};
   }
+  // Not cooling as efficiently as it could
   if (shRange === "high" && scRange === "normal") {
-    return {
-      tip: "High superheat (>15°F) & normal subcooling (10–20°F): TXV not feeding enough refrigerant—could be low charge or evaporator blockage.",
-      overrideITTT: false
-    };
+   return {
+  tip: `The evaporator isn’t getting enough refrigerant but condenser performance is normal. This points to a low refrigerant charge or a problem with the expansion valve (TXV).
+→ Next step is to check the refrigerant charge and add refrigerant if needed. If the charge is correct, inspect the expansion valve for sticking, blockage, or malfunction and replace it if necessary.
+
+I'll do a quick field test → Experience dictates, with the A/C running, I’ll feel the liquid line and receiver/drier near the TXV.
+- If these parts are unusually cold or frosted but the line after the TXV is much warmer, this indicates refrigerant stacking from a restriction.
+- If the liquid line and receiver/drier are at normal temperature, a restriction is unlikely—so I’ll focus on refrigerant charge or check for a malfunctioning TXV.`,
+  overrideITTT: false
+};
   }
+  // At risk of overfeeding evaporator
   if (shRange === "low" && scRange === "normal") {
-    return {
-      tip: "Low superheat (<10°F) & normal subcooling (10–20°F): Evaporator may be overfed—risk of compressor flooding. Check metering device and airflow.",
-      overrideITTT: false
-    };
+return {
+  tip: `The system is reporting that the evaporator is feeding too much refrigerant while condenser performance looks normal, increasing the risk of flooding the compressor.
+→ Next step is to confirm the refrigerant charge is not overfilled, make sure airflow across the evaporator is unrestricted (check the cabin filter and blower), and inspect the expansion valve (TXV) for sticking or improper operation.
+
+I'll do a quick field test → Experience dictates, with the A/C running, I’ll feel the suction line at the compressor.
+- If the suction line feels unusually cold or sweaty all the way to the compressor, this indicates excess liquid refrigerant may be reaching the compressor (floodback).
+- If the suction line is cool but not excessively cold or sweating at the compressor, compressor flooding is unlikely—so I’ll focus on checking the charge amount and ensuring proper airflow.`,
+  overrideITTT: false
+};
   }
+  // Low refrigerant or sensor issue
   if (shRange === "normal" && scRange === "low") {
     return {
-      tip: "Normal superheat (10–15°F) & low subcooling (<10°F): TXV sensing issue or undercharge. Verify refrigerant quantity and TXV bulb contact.",
-      overrideITTT: false
-    };
+  tip: `The system is reporting normal evaporator function with low condenser performance. This usually means the A/C is low on refrigerant or there’s a restriction in the receiver/drier.
+→ Next step is to verify the refrigerant charge and inspect for leaks. If the charge is correct, check for blockages or restrictions in the receiver/drier and replace if necessary.
+
+I'll do a quick field test → Experience dictates, with the A/C running, I’ll carefully feel the liquid line and receiver/drier.
+- If these parts are unusually cold or frosted but the line after suddenly gets warmer, this indicates refrigerant stacking from a restriction.
+- If the liquid line and receiver/drier are at normal temperature, restriction is unlikely—so I’ll focus on confirming refrigerant charge and addressing possible leaks.`,
+  overrideITTT: false
+};
   }
 
   // If ventDelta is missing, warn about missing data
   if (ventDeltaStatus === "Missing") {
-    return {
-      tip: "Unable to analyze A/C system performance due to missing or invalid vent or ambient temperature readings.",
-      overrideITTT: false
-    };
+return {
+  tip: `Some required data for your A/C check is missing. Please make sure both the outside (ambient) temperature and the vent temperature are recorded before continuing. This ensures your evaluation and recommendations will be accurate.`,
+  overrideITTT: false
+};
   }
 
-  // If ventDelta is outside expected for load, flag as possible airflow or mode fault
+  // Not cooling enough (vent delta low)
   if (ventDeltaStatus === "Low") {
-    return {
-      tip: `The vent is not cooling as much as expected: ΔT = ${ventDelta}°F (expected: ${expectedVentRange.min}–${expectedVentRange.max}°F drop from ${amb}°F ambient). Actual vent temp: ${vt}°F (expected: ${expectedVentMin}–${expectedVentMax}°F). This suggests reduced cooling performance—possible causes include airflow restriction, dirty cabin filter, blend door issue, or undercharge.`,
-      overrideITTT: false
-    };
+return {
+  tip: `The air coming from the vents isn’t as cool as expected for today’s temperature. Possible causes include low refrigerant, a dirty cabin filter, or a mechanical issue like a malfunctioning blend air door that’s affecting airflow temperature.
+→ Next step is to check refrigerant level and top up if needed, inspect and replace the cabin filter if dirty, and verify proper operation of all blend and mode doors in the HVAC system.`,
+  overrideITTT: false
+};
   }
-  if (ventDeltaStatus === "High") {
-    let tipMsg = `The vent is cooling more than expected: ΔT = ${ventDelta}°F (expected: ${expectedVentRange.min}–${expectedVentRange.max}°F drop from ${amb}°F ambient). Actual vent temp: ${vt}°F (expected: ${expectedVentMin}–${expectedVentMax}°F). This means the system is too cold, which often points to overcharging, recirculation door stuck on max, or improper vent setting. Overcharge can cause evaporator icing or even compressor damage unless corrected.`;
-    if (ventDelta > 40) {
-      tipMsg += " ⚠️ WARNING: Extreme vent cooling indicates high risk of compressor or evaporator failure. Immediate correction recommended.";
-    }
-    return {
-      tip: tipMsg,
-      overrideITTT: false
-    };
+// Blowing Colder than Expected.
+if (ventDeltaStatus === "High") {
+  let tipMsg = `Your A/C is blowing air that’s colder than expected for today’s weather. This can occur if the system is overcharged with refrigerant or if it’s staying in recirculate mode constantly.
+→ Next step is to verify the refrigerant charge is within spec and check the recirculation door operation. If the system is overcharged or the recirculate mode is stuck, adjust and repair as needed for optimal performance.`;
+  if (ventDelta > 40) {
+    tipMsg += " ⚠️ If you notice unusual noises or reduced airflow, let us know immediately so we can prevent possible system damage.";
   }
-
-  // Default: system appears normal, suggest ITTT override
   return {
-    tip: "The A/C system isn’t displaying any common signs of a refrigerant flow issue. If the original concern is no longer present, then the system appears to be operating normally at this time.",
-    overrideITTT: true
+    tip: tipMsg,
+    overrideITTT: false
   };
 }
-</script>
+  // Default: system appears normal
+ return {
+  tip: `All refrigerant system pressures and temperature readings appear normal and within expected ranges.
+→  I'll Recheck all gauge and temperature readings for accuracy, make sure sensors and probes are correctly placed, and confirm that all test conditions are correct.
 
-<script>
-
- // ─── buildAutotechPrompt ─────────────────────────────────────────────────
-function buildAutotechPrompt(rawReport, flagBlock, customer, vehicle) {
-let intro = `Hi ${customer}, we understand how frustrating it can be when your vehicle’s A/C isn’t keeping you comfortable. Rest assured, we’ve assigned one of our experienced ASE Certified Technicians to your beautiful ${vehicle} to thoroughly evaluate the system. After reviewing the results from our checks, here’s what we’ve found so far:`;
-
-  let body = "";
-  if (flagBlock.chargeStatus === "balanced") {
-    body = flagBlock.ventOk
-      ? "Everything looks solid—your pressures and airflow are right where they should be."
-      : "Your pressures look good, but the vents aren’t blowing as cold as expected—this may point to a mechanical or airflow issue. We'll verify the root cause for you.";
-  } else if (flagBlock.chargeStatus === "slightUnder") {
-    body = `A simple refrigerant top-off will correct it—at ${vehicleAge} years old, a small undercharge is common due to normal seepage. Even small losses can reduce cooling, so we recommend servicing every 1–2 years.`;
-  } else if (["severeUnder", "overcharged"].includes(flagBlock.chargeStatus)) {
-    body = "A full refrigerant recovery & factory recharge is recommended.";
-  }
-
-  if (flagBlock.hasVDC && flagBlock.imbalanceDetected) {
-    body += " The compressor's variable pressure feature may be masking an underlying fault.";
-  }
-
-  return `${intro} ${body}`;
+If I find any reading or setup errors, I'll correct them and retest the system before proceeding with further diagnostics.`,
+  overrideITTT: true
+};
 }
-
-
-//! ─── CHAT WIDGET HELPERS  Script below ───────────────────────────
- 
-    function cw_appendMessage(text, cls) {
-    const cw_messagesDiv = document.getElementById("cw_messages");
-    const d = document.createElement("div");
-    d.className = "cw_message " + cls;
-    d.textContent = text;
-    cw_messagesDiv.appendChild(d);
-    cw_messagesDiv.scrollTop = cw_messagesDiv.scrollHeight;
-  }
-
-
-// ──────────── Staring the ASK Report ────────────
-async function cw_askReport() {
-  const serviceInterval = document.getElementById("serviceInterval").value;
-  if (!serviceInterval) {
-    alert("Please select how long since last A/C service before asking.");
-    return;
-  }
-
-  // 1) grab the current report
-  const rawReport = stripHTML(document.getElementById("output").innerHTML);
-  if (!rawReport) {
-    alert("Run the evaluation first.");
-    return;
-  }
-
-  // 2) build flags
-  const flagsCopy = Object.assign({}, window.latestPromptFlags, { serviceInterval });
-
-  // 3) serialize flags into a string
-  const flagsString = Object.entries(flagsCopy)
-    .map(([key, val]) => `${key}: ${val}`)
-    .join("; ");
-
-  // 4) read customer and vehicle
-  const customer = document.getElementById("customer").value.trim() || "Customer";
-  const vehicle  = document.getElementById("vehicle").value.trim()  || "your vehicle";
-
-  // 5) build the full prompt
-  const humanPrompt = buildAutotechPrompt(rawReport, flagsCopy, customer, vehicle);
-  const fullQuestion = `Flags — ${flagsString}\n\n${humanPrompt}`;
-
-  // 6) send to chat proxy
-  const cw_messagesDiv = document.getElementById("cw_messages");
-  cw_messagesDiv.innerHTML = "";
-  cw_appendMessage("…analyzing report…", "cw_assistant");
-
-  try {
-    const res = await fetch("https://ac-chat-proxy.peter-sarantidis.workers.dev", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: fullQuestion })
-    });
-    const data = await res.json();
-    cw_messagesDiv.removeChild(cw_messagesDiv.lastChild);
-
-    if (data.reply) {
-      cw_appendMessage(data.reply, "cw_assistant");
-      const summaryEl = document.getElementById("customerSummary");
-      if (summaryEl) summaryEl.textContent = data.reply;
-    } else {
-      cw_appendMessage("Error: " + (data.error || "No reply"), "cw_assistant");
-    }
-  } catch (err) {
-    cw_messagesDiv.removeChild(cw_messagesDiv.lastChild);
-    cw_appendMessage("Network error: " + err.message, "cw_assistant");
-  } 
-}
-
 </script>
 
 <script>
@@ -2934,23 +3120,24 @@ async function downloadPDF() {
     downloadBtn.innerText = "Generating PDF…";
   }
 
-  // append owner message
+  // --- TEMPORARILY append customer summary for PDF only ---
   const ownerMsgEl = document.getElementById("customerSummary");
+  let tempSummaryDiv = null;
   if (ownerMsgEl && ownerMsgEl.textContent.trim()) {
-    reportEl.insertAdjacentHTML(
-      "beforeend",
-      `<div class="report-section">${ownerMsgEl.innerHTML}</div>`
-    );
+    tempSummaryDiv = document.createElement("div");
+    tempSummaryDiv.className = "report-section";
+    tempSummaryDiv.innerHTML = ownerMsgEl.innerHTML;
+    reportEl.appendChild(tempSummaryDiv);
   }
 
-  // wait for images
+  // Wait for all images in report to be loaded
   const images = reportEl.querySelectorAll("img");
   await Promise.all(Array.from(images).map(img => {
     if (img.complete) return Promise.resolve();
     return new Promise(resolve => { img.onload = img.onerror = resolve; });
   }));
 
-  // render to canvas
+  // Render to canvas
   const canvas = await html2canvas(reportEl, {
     scale: 2,
     useCORS: true,
@@ -2959,29 +3146,41 @@ async function downloadPDF() {
   });
   const imgData = canvas.toDataURL("image/png");
 
-  // build PDF
+  // Build PDF with proportional scaling, narrow margin, no stretching
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF("p", "pt", "letter");
   const pageWidth  = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth   = canvas.width;
-  const imgHeight  = canvas.height;
-  const ratio      = Math.min(pageWidth / imgWidth, pageHeight / imgHeight);
-  const imgW       = imgWidth * ratio;
-  const imgH       = imgHeight * ratio;
-  const marginX    = (pageWidth  - imgW) / 2;
-  const marginY    = (pageHeight - imgH) / 2;
+  const margin = 8; // pt (set to 0 for no margin)
 
-  pdf.addImage(imgData, "PNG", marginX, marginY, imgW, imgH);
+  const availableWidth  = pageWidth  - margin * 2;
+  const availableHeight = pageHeight - margin * 2;
 
-  // filename
+  const imgOrigWidth = canvas.width;
+  const imgOrigHeight = canvas.height;
+  const ratio = Math.min(availableWidth / imgOrigWidth, availableHeight / imgOrigHeight);
+
+  const imgW = imgOrigWidth * ratio;
+  const imgH = imgOrigHeight * ratio;
+
+  const posX = margin + (availableWidth  - imgW) / 2;
+  const posY = margin + (availableHeight - imgH) / 2;
+
+  pdf.addImage(imgData, "PNG", posX, posY, imgW, imgH);
+
+  // Build filename
   const timeStamp = new Date().toISOString().slice(0, 10);
   const vehicle   = (document.getElementById("vehicle").value || "Vehicle").replace(/[^\w\-]/g, "_");
-  const ro        = (document.getElementById("ro").value || "RO").replace(/[^\w\-]/g, "_");
+  const ro        = (document.getElementById("ro").value || "").replace(/[^\w\-]/g, "_");
   const evalType  = (document.getElementById("testStage").value || "Evaluation").replace(/[^\w\-]/g, "_");
   const filename  = `RO${ro}_${vehicle}_AC-Triage_${evalType}_${timeStamp}.pdf`;
 
   pdf.save(filename);
+
+  // --- CLEANUP: Remove the temp summary from the report ---
+  if (tempSummaryDiv) {
+    reportEl.removeChild(tempSummaryDiv);
+  }
 
   if (downloadBtn) {
     downloadBtn.disabled = false;
@@ -2989,5 +3188,186 @@ async function downloadPDF() {
   }
 }
 </script>
+
+<script>
+// --- Modal helpers ---
+function showModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.style.display = "flex";
+}
+function hideModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.style.display = "none";
+}
+
+// --- Tech Name Display and Modal Logic ---
+function updateTechNameDisplay() {
+  const techName = window.techName && window.techName.trim();
+  const display = document.getElementById("reportTechName");
+  if (display) {
+    if (techName) {
+      display.textContent = `Report prepared by ${techName}`;
+    } else {
+      display.textContent = "";
+      // Show confirmation if tech name missing and modal not already open
+      if (!window.confirmationModalShown) {
+        resetConfirmationModal();
+        showModal("confirmationModal");
+        window.confirmationModalShown = true;
+      }
+    }
+  }
+}
+
+function resetConfirmationModal() {
+  window.confirmationModalShown = false;
+  window.techName = "";
+  const techNameInput = document.getElementById("techNameInput");
+  const continueBtn = document.getElementById("confirmationContinueBtn");
+  if (techNameInput) techNameInput.value = "";
+  if (continueBtn) continueBtn.disabled = true;
+  hideModal("confirmationModal");
+}
+
+// --- AUTOSAVE/RESTORE for A/C Triage Pro ---
+const AUTOSAVE_FIELDS = [
+  "ro", "customer", "vin", "vehicle", "zipCode", "ambient", "rh",
+  "staticPressure", "serviceInterval", "testStage", "refrigerant",
+  "factoryCharge", "chargeUnit", "tempSource", "highSidePortType",
+  "expansionDevice", "evapTempSource", "ihxEquipped", "compressorType",
+  "evapPressure", "evapOutlet", "highPressure", "outlet", "tempAtTXV",
+  "vent", "techNotes"
+];
+
+const CLEAR_FIELDS = [
+  "techName","ro", "customer", "vin", "vehicle", "zipCode", "ambient", "rh", 
+  "staticPressure", "factoryCharge", "evapPressure", "evapOutlet", 
+  "highPressure", "outlet", "tempAtTXV", "vent", "techNotes"
+];
+
+const RESET_TO_DEFAULT_FIELDS = [
+  "serviceInterval", "testStage", "refrigerant", "chargeUnit", "tempSource",
+  "highSidePortType", "expansionDevice", "evapTempSource", "ihxEquipped", "compressorType"
+];
+
+// 1. Save all fields on any change
+function autosaveForm() {
+  const data = {};
+  AUTOSAVE_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) data[id] = el.value;
+  });
+  localStorage.setItem("acTriageFormData", JSON.stringify(data));
+}
+
+// 2. Restore all fields on page load
+function restoreForm() {
+  const data = JSON.parse(localStorage.getItem("acTriageFormData") || "{}");
+  AUTOSAVE_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && data[id] !== undefined && data[id] !== null && data[id] !== "") {
+      el.value = data[id];
+    }
+  });
+  if (typeof evaluateStaticPressure === "function") evaluateStaticPressure();
+  if (typeof updateVentMessage === "function") updateVentMessage();
+}
+
+// 3. Clear everything for a new report (MUST BE OUTSIDE DOMContentLoaded!)
+function clearAutosave() {
+  // 1. Remove autosaved data
+  localStorage.removeItem("acTriageFormData");
+
+  // 2. Clear all simple input fields
+  CLEAR_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
+  // 3. Reset all select dropdowns to their default options
+  RESET_TO_DEFAULT_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.options && el.options.length) {
+      let selectedIndex = 0;
+      for (let i = 0; i < el.options.length; i++) {
+        if (el.options[i].defaultSelected) {
+          selectedIndex = i;
+          break;
+        }
+      }
+      el.selectedIndex = selectedIndex;
+    }
+  });
+
+  // 4. Hide advanced fields
+  const adv = document.getElementById("advancedFieldsWrapper");
+  if (adv) adv.style.display = "none";
+
+  // 5. Reset technician name and modal
+  window.techName = "";
+  localStorage.removeItem("acTriageTechName");
+  updateTechNameDisplay();
+
+  // --- OPTIONAL ENHANCEMENTS BELOW ---
+  const preview = document.getElementById("photoPreview");
+  if (preview) preview.innerHTML = "";
+  if (typeof attachedImages !== "undefined") attachedImages = [];
+
+  const out = document.getElementById("output");
+  if (out) out.innerHTML = "";
+  const custSummary = document.getElementById("customerSummary");
+  if (custSummary) custSummary.textContent = "";
+
+  const cwDiv = document.getElementById("cw_messages");
+  if (cwDiv) cwDiv.innerHTML = "";
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// --- DOMContentLoaded (SETUP) ---
+document.addEventListener("DOMContentLoaded", function() {
+  window.confirmationModalShown = false;
+  // Restore techName from localStorage if present
+  window.techName = localStorage.getItem("acTriageTechName") || "";
+
+  AUTOSAVE_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", autosaveForm);
+  });
+
+  restoreForm();
+  updateTechNameDisplay();
+
+  setTimeout(() => {
+    // Only show modal if no techName found in storage
+    if (!window.techName || window.techName.trim() === "") {
+      resetConfirmationModal();
+      showModal("confirmationModal");
+      window.confirmationModalShown = true;
+    }
+  }, 100);
+});
+
+// --- Modal capture on confirmation ---
+document.addEventListener("DOMContentLoaded", function() {
+  const techNameInput = document.getElementById("techNameInput");
+  const continueBtn = document.getElementById("confirmationContinueBtn");
+  if (techNameInput && continueBtn) {
+    techNameInput.addEventListener("input", function() {
+      continueBtn.disabled = (this.value.trim() === "");
+    });
+    continueBtn.addEventListener("click", function() {
+      window.techName = techNameInput.value.trim();
+	localStorage.setItem("acTriageTechName", window.techName);      
+	hideModal("confirmationModal");
+      updateTechNameDisplay();
+    });
+  }
+});
+</script>
+
+<button onclick="clearAutosave()">Start New Report</button>
+
+
 </body>
 </html>
